@@ -32,11 +32,17 @@ def sync_master_excel(choices_data):
                         match_item = v
                         break
             
-            if match_item and match_item.get("voucher"):
-                ws_may.cell(r, 15, value=match_item["voucher"])
-                ws_may.cell(r, 16, value=match_item.get("timestamp", ""))
-                ws_may.cell(r, 17, value="Complete")
-                updated_may += 1
+            if match_item:
+                if match_item.get("voucher"):
+                    ws_may.cell(r, 15, value=match_item["voucher"])
+                    ws_may.cell(r, 16, value=match_item.get("timestamp", ""))
+                    ws_may.cell(r, 17, value="Complete")
+                    updated_may += 1
+                elif match_item.get("timestamp"):
+                    ws_may.cell(r, 15, value="")
+                    ws_may.cell(r, 16, value=match_item.get("timestamp", ""))
+                    ws_may.cell(r, 17, value="Pending")
+                    updated_may += 1
         print(f"Updated {updated_may} records in Award_May_2026.")
 
     # 2. Update June (Area Code Col 7, MIO Code Col 9, Voucher Col 17, Timestamp Col 18, Status Col 19)
@@ -54,11 +60,17 @@ def sync_master_excel(choices_data):
                         match_item = v
                         break
             
-            if match_item and match_item.get("voucher"):
-                ws_jun.cell(r, 17, value=match_item["voucher"])
-                ws_jun.cell(r, 18, value=match_item.get("timestamp", ""))
-                ws_jun.cell(r, 19, value="Complete")
-                updated_jun += 1
+            if match_item:
+                if match_item.get("voucher"):
+                    ws_jun.cell(r, 17, value=match_item["voucher"])
+                    ws_jun.cell(r, 18, value=match_item.get("timestamp", ""))
+                    ws_jun.cell(r, 19, value="Complete")
+                    updated_jun += 1
+                elif match_item.get("timestamp"):
+                    ws_jun.cell(r, 17, value="")
+                    ws_jun.cell(r, 18, value=match_item.get("timestamp", ""))
+                    ws_jun.cell(r, 19, value="Pending")
+                    updated_jun += 1
         print(f"Updated {updated_jun} records in Award_June_2026.")
 
     wb.save(EXCEL_FILE)

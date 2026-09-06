@@ -36,7 +36,7 @@ function doGet(e) {
     var jsonStr = JSON.stringify({
       status: "success",
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
     });
     if (p.callback) {
       return ContentService.createTextOutput(p.callback + "(" + jsonStr + ")")
@@ -50,7 +50,7 @@ function doGet(e) {
     status: "ok",
     message: "Exium Award Choice Backend is Active",
     summary: summary,
-    timestamp: new Date().toISOString()
+    timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -95,7 +95,7 @@ function doPost(e) {
         var areaCode = String(item.area_code || "").trim();
         var mioCode = String(item.mio_code || "").trim();
         var voucher = String(item.voucher || "").trim();
-        var timestamp = item.timestamp || Utilities.formatDate(new Date(), "Asia/Dhaka", "yyyy-MM-dd HH:mm:ss");
+        var timestamp = item.timestamp || Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a");
 
         if (!areaCode) continue;
 
@@ -131,10 +131,11 @@ function doPost(e) {
             var rowIdx = r + 2;
             var currentVoucher = String(sheet.getRange(rowIdx, voucherCol).getValue() || "").trim();
 
-            // Explicit removal action
+            // Explicit removal / deselect action:
+            // "Jokhon deselect kora hoy, tokhon only choice ta remove hoy/ blank hoy, kintu timestamp theke jay."
             if (action === "remove_choice" || item.action === "remove") {
               sheet.getRange(rowIdx, voucherCol).setValue("");
-              sheet.getRange(rowIdx, timeCol).setValue(timestamp);
+              // Note: timeCol is NOT modified/erased. The recorded timestamp remains strictly preserved!
               sheet.getRange(rowIdx, statusCol).setValue("Pending");
               sheet.getRange(rowIdx, voucherCol, 1, 3).setBackground(null);
               updatedCount++;
@@ -164,7 +165,7 @@ function doPost(e) {
         status: "success",
         updated: updatedCount,
         message: updatedCount + " choice(s) saved successfully.",
-        timestamp: new Date().toISOString()
+        timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -209,7 +210,7 @@ function getSheetChoices(ss, sheetName) {
     var s = String(statusVals[i][0] || "").trim();
     var t = String(timeVals[i][0] || "").trim();
 
-    if (ac && v) {
+    if (ac && (v || t)) {
       var key = ac + "_" + mc;
       choices[key] = { voucher: v, status: s, timestamp: t };
     }

@@ -1044,6 +1044,80 @@ def generate_html_portal(json_db_str):
         let cloudEndpoint = localStorage.getItem('EXIUM_AWARD_ENDPOINT') || '';
         let isAdminUnlocked = false;
 
+        // BANGLADESH STANDARD TIME (BDT / UTC+6) GENERATOR & FORMATTER
+        function getBDTimestamp() {{
+            try {{
+                const now = new Date();
+                const formatter = new Intl.DateTimeFormat('en-US', {{
+                    timeZone: 'Asia/Dhaka',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }});
+                const parts = formatter.formatToParts(now);
+                let day = '', month = '', year = '', hour = '', minute = '', second = '', dayPeriod = 'AM';
+                for (let i = 0; i < parts.length; i++) {{
+                    const p = parts[i];
+                    if (p.type === 'day') day = p.value;
+                    if (p.type === 'month') month = p.value;
+                    if (p.type === 'year') year = p.value;
+                    if (p.type === 'hour') hour = p.value;
+                    if (p.type === 'minute') minute = p.value;
+                    if (p.type === 'second') second = p.value;
+                    if (p.type === 'dayPeriod') dayPeriod = p.value.toUpperCase();
+                }}
+                return `${{day}}-${{month}}-${{year}} ${{hour}}:${{minute}}:${{second}} ${{dayPeriod}}`;
+            }} catch (e) {{
+                const d = new Date();
+                const bdTimeMs = d.getTime() + (d.getTimezoneOffset() * 60000) + (6 * 3600000);
+                const bd = new Date(bdTimeMs);
+                const pad = n => String(n).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                let h = bd.getUTCHours();
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                return `${{pad(bd.getUTCDate())}}-${{months[bd.getUTCMonth()]}}-${{bd.getUTCFullYear()}} ${{pad(h)}}:${{pad(bd.getUTCMinutes())}}:${{pad(bd.getUTCSeconds())}} ${{ampm}}`;
+            }}
+        }}
+
+        function formatToBDTime(isoOrStr) {{
+            if (!isoOrStr) return '';
+            if (/^\\d{{2}}-[A-Za-z]{{3}}-\\d{{4}}/.test(isoOrStr)) return isoOrStr;
+            try {{
+                const d = new Date(isoOrStr);
+                if (isNaN(d.getTime())) return isoOrStr;
+                const formatter = new Intl.DateTimeFormat('en-US', {{
+                    timeZone: 'Asia/Dhaka',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }});
+                const parts = formatter.formatToParts(d);
+                let day = '', month = '', year = '', hour = '', minute = '', second = '', dayPeriod = 'AM';
+                for (let i = 0; i < parts.length; i++) {{
+                    const p = parts[i];
+                    if (p.type === 'day') day = p.value;
+                    if (p.type === 'month') month = p.value;
+                    if (p.type === 'year') year = p.value;
+                    if (p.type === 'hour') hour = p.value;
+                    if (p.type === 'minute') minute = p.value;
+                    if (p.type === 'second') second = p.value;
+                    if (p.type === 'dayPeriod') dayPeriod = p.value.toUpperCase();
+                }}
+                return `${{day}}-${{month}}-${{year}} ${{hour}}:${{minute}}:${{second}} ${{dayPeriod}}`;
+            }} catch (e) {{
+                return isoOrStr;
+            }}
+        }}
+
         document.addEventListener('DOMContentLoaded', () => {{
             if (DB.logos.main_logo) {{
                 document.getElementById('header-logo').src = DB.logos.main_logo;
@@ -1314,12 +1388,16 @@ def generate_html_portal(json_db_str):
             const monthLabel = isMay ? 'May 2026 Award' : 'June 2026 Award';
 
             let selectionStatusHtml = '';
+            const choiceObj = savedChoices[ach.id];
+            const tsFormatted = (choiceObj && choiceObj.timestamp) ? formatToBDTime(choiceObj.timestamp) : '';
+
             if (isCompleted) {{
                 selectionStatusHtml = `
                     <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                         <span class="text-xs font-black text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
                             <span>✓</span>
                             <span>Selected: <strong>${{chosenVoucher}}</strong></span>
+                            ${{tsFormatted ? `<span class="text-[10px] font-medium text-emerald-700 font-mono ml-1">(${{tsFormatted}})</span>` : ''}}
                         </span>
                         <button onclick="removeVoucher('${{ach.id}}')" title="Remove / Clear this voucher choice" class="text-[11px] font-bold text-rose-700 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 px-2.5 py-1 rounded-xl transition flex items-center gap-1 shadow-sm">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -1329,10 +1407,13 @@ def generate_html_portal(json_db_str):
                 `;
             }} else {{
                 selectionStatusHtml = `
-                    <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl flex items-center gap-1">
-                        <span>⏳</span>
-                        <span>Selection Pending</span>
-                    </span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                            <span>⏳</span>
+                            <span>Selection Pending</span>
+                        </span>
+                        ${{tsFormatted ? `<span class="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg font-mono" title="Timestamp preserved from earlier selection">Recorded: ${{tsFormatted}}</span>` : ''}}
+                    </div>
                 `;
             }}
 
@@ -1541,10 +1622,10 @@ def generate_html_portal(json_db_str):
                 return;
             }}
 
-            const now = new Date().toISOString();
+            const bdTime = getBDTimestamp();
             savedChoices[achId] = {{
                 voucher: voucherName,
-                timestamp: now,
+                timestamp: bdTime,
                 status: 'Complete'
             }};
 
@@ -1552,7 +1633,7 @@ def generate_html_portal(json_db_str):
 
             renderAchievers();
             updateRegionProgress();
-            triggerAutoSync(achId, voucherName, 'save');
+            triggerAutoSync(achId, voucherName, 'save', bdTime);
             showToast(`Selected ${{voucherName}}`, '✅');
         }}
 
@@ -1560,13 +1641,20 @@ def generate_html_portal(json_db_str):
             if (!savedChoices[achId]) return;
 
             const oldVoucher = savedChoices[achId].voucher;
-            delete savedChoices[achId];
+            const existingTimestamp = (savedChoices[achId] && savedChoices[achId].timestamp) ? savedChoices[achId].timestamp : '';
+
+            // User requirement: When deselected, only choice is removed/blank, but timestamp is preserved
+            savedChoices[achId] = {{
+                voucher: '',
+                timestamp: existingTimestamp,
+                status: 'Pending'
+            }};
 
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
 
             renderAchievers();
             updateRegionProgress();
-            triggerAutoSync(achId, '', 'remove');
+            triggerAutoSync(achId, '', 'remove', existingTimestamp);
             showToast(`Removed ${{oldVoucher}}`, '🗑️');
         }}
 
@@ -1596,38 +1684,46 @@ def generate_html_portal(json_db_str):
             document.getElementById('sticky-completed-text').textContent = `${{completedAwards}}/${{totalAwards}} Awards (${{pct}}%) • ${{completeMios}}/${{mios.length}} MIOs Complete`;
         }}
 
+        let pendingCloudQueue = {{}};
         let autoSyncTimer = null;
-        function triggerAutoSync(achId, voucherName, opType = 'save') {{
+        function triggerAutoSync(achId, voucherName, opType = 'save', explicitTimestamp = '') {{
+            const all = DB.achievers_may.concat(DB.achievers_jun);
+            const a = all.find(x => x.id === achId);
+            if (!a) return;
+
+            const isRemove = (opType === 'remove' || !voucherName);
+            const ts = explicitTimestamp || (savedChoices[achId] ? savedChoices[achId].timestamp : '') || getBDTimestamp();
+
+            pendingCloudQueue[achId] = {{
+                id: a.id,
+                month: a.month,
+                area_code: a.area_code,
+                mio_code: a.mio_code,
+                voucher: isRemove ? '' : voucherName,
+                action: isRemove ? 'remove' : 'save',
+                timestamp: ts
+            }};
+
             clearTimeout(autoSyncTimer);
             autoSyncTimer = setTimeout(() => {{
                 if (!cloudEndpoint) return;
-                const all = DB.achievers_may.concat(DB.achievers_jun);
-                const a = all.find(x => x.id === achId);
-                if (!a) return;
-
-                const isRemove = (opType === 'remove' || !voucherName);
-                const payload = {{
-                    action: isRemove ? 'remove_choice' : 'save_choices',
-                    choices: [{{
-                        id: a.id,
-                        month: a.month,
-                        area_code: a.area_code,
-                        mio_code: a.mio_code,
-                        voucher: isRemove ? '' : voucherName,
-                        action: isRemove ? 'remove' : 'save',
-                        timestamp: new Date().toISOString()
-                    }}]
-                }};
+                const batch = Object.values(pendingCloudQueue);
+                if (batch.length === 0) return;
+                pendingCloudQueue = {{}};
 
                 fetch(cloudEndpoint, {{
                     method: 'POST',
                     mode: 'no-cors',
                     headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({{
+                        action: 'save_choices',
+                        choices: batch
+                    }})
                 }}).then(() => {{
-                    document.getElementById('sync-status-text').textContent = isRemove ? 'Cloud Synced (Removed)' : 'Cloud Synced';
+                    const stEl = document.getElementById('sync-status-text');
+                    if (stEl) stEl.textContent = isRemove ? 'Cloud Synced (Removed)' : 'Cloud Synced';
                 }}).catch(err => console.error('Sync error:', err));
-            }}, 1500);
+            }}, 1200);
         }}
 
         async function manualSaveSync() {{
@@ -1645,30 +1741,54 @@ def generate_html_portal(json_db_str):
                     mios.forEach(m => {{
                         if (m.may_award) {{
                             const ch = savedChoices[m.may_award.id];
-                            if (ch && ch.voucher) {{
-                                batchChoices.push({{
-                                    id: m.may_award.id,
-                                    month: 'May_2026',
-                                    area_code: m.may_award.area_code,
-                                    mio_code: m.may_award.mio_code,
-                                    voucher: ch.voucher,
-                                    action: 'save',
-                                    timestamp: ch.timestamp || new Date().toISOString()
-                                }});
+                            if (ch) {{
+                                if (ch.voucher) {{
+                                    batchChoices.push({{
+                                        id: m.may_award.id,
+                                        month: 'May_2026',
+                                        area_code: m.may_award.area_code,
+                                        mio_code: m.may_award.mio_code,
+                                        voucher: ch.voucher,
+                                        action: 'save',
+                                        timestamp: ch.timestamp || getBDTimestamp()
+                                    }});
+                                }} else if (ch.timestamp) {{
+                                    batchChoices.push({{
+                                        id: m.may_award.id,
+                                        month: 'May_2026',
+                                        area_code: m.may_award.area_code,
+                                        mio_code: m.may_award.mio_code,
+                                        voucher: '',
+                                        action: 'remove',
+                                        timestamp: ch.timestamp
+                                    }});
+                                }}
                             }}
                         }}
                         if (m.jun_award) {{
                             const ch = savedChoices[m.jun_award.id];
-                            if (ch && ch.voucher) {{
-                                batchChoices.push({{
-                                    id: m.jun_award.id,
-                                    month: 'June_2026',
-                                    area_code: m.jun_award.area_code,
-                                    mio_code: m.jun_award.mio_code,
-                                    voucher: ch.voucher,
-                                    action: 'save',
-                                    timestamp: ch.timestamp || new Date().toISOString()
-                                }});
+                            if (ch) {{
+                                if (ch.voucher) {{
+                                    batchChoices.push({{
+                                        id: m.jun_award.id,
+                                        month: 'June_2026',
+                                        area_code: m.jun_award.area_code,
+                                        mio_code: m.jun_award.mio_code,
+                                        voucher: ch.voucher,
+                                        action: 'save',
+                                        timestamp: ch.timestamp || getBDTimestamp()
+                                    }});
+                                }} else if (ch.timestamp) {{
+                                    batchChoices.push({{
+                                        id: m.jun_award.id,
+                                        month: 'June_2026',
+                                        area_code: m.jun_award.area_code,
+                                        mio_code: m.jun_award.mio_code,
+                                        voucher: '',
+                                        action: 'remove',
+                                        timestamp: ch.timestamp
+                                    }});
+                                }}
                             }}
                         }}
                     }});
@@ -1784,7 +1904,7 @@ def generate_html_portal(json_db_str):
                 const regTotal = regMay.length + regJun.length;
                 let regDone = 0;
                 regMay.concat(regJun).forEach(a => {{
-                    if (savedChoices[a.id]) regDone++;
+                    if (savedChoices[a.id] && savedChoices[a.id].voucher) regDone++;
                 }});
                 const regPct = regTotal > 0 ? Math.round((regDone / regTotal) * 100) : 0;
 
@@ -1925,6 +2045,7 @@ def generate_html_portal(json_db_str):
                                             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Selected Voucher:</span>
                                             <strong class="text-xs font-black text-emerald-950">${{choiceInfo.voucher}}</strong>
                                         </div>
+                                        ${{choiceInfo && choiceInfo.timestamp ? `<span class="text-[10px] font-medium text-emerald-700 font-mono">${{formatToBDTime(choiceInfo.timestamp)}}</span>` : ''}}
                                     </div>
                                 ` : `
                                     <div class="bg-amber-50/60 border border-amber-200 rounded-lg p-2 flex items-center justify-between gap-2">
@@ -1932,6 +2053,7 @@ def generate_html_portal(json_db_str):
                                             <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-black text-[10px]">⏳</span>
                                             <span class="text-[11px] font-bold text-amber-900">Pending Selection by Regional Head</span>
                                         </div>
+                                        ${{choiceInfo && choiceInfo.timestamp ? `<span class="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-mono" title="Timestamp preserved from earlier selection">Recorded: ${{formatToBDTime(choiceInfo.timestamp)}}</span>` : ''}}
                                     </div>
                                 `}}
                             </div>
@@ -2173,28 +2295,58 @@ def generate_html_portal(json_db_str):
 
                     DB.achievers_may.forEach(a => {{
                         const key = a.area_code + '_' + a.mio_code;
-                        if (mayData[key] && mayData[key].voucher) {{
-                            const prev = savedChoices[a.id] ? savedChoices[a.id].voucher : '';
-                            if (prev !== mayData[key].voucher) {{
-                                savedChoices[a.id] = {{
-                                    voucher: mayData[key].voucher,
-                                    timestamp: mayData[key].timestamp || ''
-                                }};
-                                appliedCount++;
+                        if (mayData[key]) {{
+                            const item = mayData[key];
+                            const prev = savedChoices[a.id];
+                            const prevVoucher = prev ? (prev.voucher || '') : '';
+                            const prevTime = prev ? (prev.timestamp || '') : '';
+                            if (item.voucher) {{
+                                if (prevVoucher !== item.voucher || prevTime !== item.timestamp) {{
+                                    savedChoices[a.id] = {{
+                                        voucher: item.voucher,
+                                        timestamp: item.timestamp || '',
+                                        status: 'Complete'
+                                    }};
+                                    appliedCount++;
+                                }}
+                            }} else if (item.timestamp) {{
+                                if (prevVoucher !== '' || prevTime !== item.timestamp) {{
+                                    savedChoices[a.id] = {{
+                                        voucher: '',
+                                        timestamp: item.timestamp,
+                                        status: 'Pending'
+                                    }};
+                                    appliedCount++;
+                                }}
                             }}
                         }}
                     }});
 
                     DB.achievers_jun.forEach(a => {{
                         const key = a.area_code + '_' + a.mio_code;
-                        if (junData[key] && junData[key].voucher) {{
-                            const prev = savedChoices[a.id] ? savedChoices[a.id].voucher : '';
-                            if (prev !== junData[key].voucher) {{
-                                savedChoices[a.id] = {{
-                                    voucher: junData[key].voucher,
-                                    timestamp: junData[key].timestamp || ''
-                                }};
-                                appliedCount++;
+                        if (junData[key]) {{
+                            const item = junData[key];
+                            const prev = savedChoices[a.id];
+                            const prevVoucher = prev ? (prev.voucher || '') : '';
+                            const prevTime = prev ? (prev.timestamp || '') : '';
+                            if (item.voucher) {{
+                                if (prevVoucher !== item.voucher || prevTime !== item.timestamp) {{
+                                    savedChoices[a.id] = {{
+                                        voucher: item.voucher,
+                                        timestamp: item.timestamp || '',
+                                        status: 'Complete'
+                                    }};
+                                    appliedCount++;
+                                }}
+                            }} else if (item.timestamp) {{
+                                if (prevVoucher !== '' || prevTime !== item.timestamp) {{
+                                    savedChoices[a.id] = {{
+                                        voucher: '',
+                                        timestamp: item.timestamp,
+                                        status: 'Pending'
+                                    }};
+                                    appliedCount++;
+                                }}
                             }}
                         }}
                     }});
@@ -2277,8 +2429,9 @@ def generate_html_portal(json_db_str):
 
             const formatAchieverRow = (a, isJune) => {{
                 const ch = savedChoices[a.id] || {{}};
-                const voucher = ch.voucher || a.choice || '';
-                const timestamp = ch.timestamp || a.timestamp || '';
+                const voucher = (ch.voucher !== undefined) ? ch.voucher : (a.choice || '');
+                const rawTimestamp = ch.timestamp || a.timestamp || '';
+                const timestamp = formatToBDTime(rawTimestamp);
                 const status = voucher ? 'Complete' : 'Pending';
                 const td = a.transfer_details || {{}};
 
