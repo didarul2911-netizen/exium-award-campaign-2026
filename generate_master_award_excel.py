@@ -312,7 +312,7 @@ def generate_master_excel():
         "Bata Gift Voucher",
         "Aarong Gift Voucher",
         "Best Buy Gift Voucher",
-        "Shwapno Gift Voucher"
+        "Cats Eye Gift Voucher"
     ]
     
     for idx, brand in enumerate(brands, start=12):

@@ -40,7 +40,7 @@ def build_portal():
         "bata": get_base64_image(os.path.join(folder, "Brand Logo", "Bata logo.jpg")),
         "bestbuy": get_base64_image(os.path.join(folder, "Brand Logo", "Best Buy Logo.png")),
         "infinity": get_base64_image(os.path.join(folder, "Brand Logo", "Infinity Logo.png")),
-        "shwapno": get_base64_image(os.path.join(folder, "Brand Logo", "Shwapno Logo.jpg"))
+        "catseye": get_base64_image(os.path.join(folder, "Brand Logo", "Cats Eye Logo.jpeg"))
     }
     print("Encoded all logos and award criteria images to base64.")
 
@@ -1030,10 +1030,10 @@ def generate_html_portal(json_db_str):
                 logo: DB.logos.bestbuy
             }},
             {{
-                name: 'Shwapno Gift Voucher',
-                subtitle: 'Supermarket & Groceries',
-                key: 'shwapno',
-                logo: DB.logos.shwapno
+                name: 'Cats Eye Gift Voucher',
+                subtitle: 'Fashion & Lifestyle',
+                key: 'catseye',
+                logo: DB.logos.catseye
             }}
         ];
 

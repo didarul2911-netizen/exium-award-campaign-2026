@@ -16,7 +16,7 @@ var VOUCHER_OPTIONS = [
   "Bata Gift Voucher",
   "Aarong Gift Voucher",
   "Best Buy Gift Voucher",
-  "Shwapno Gift Voucher"
+  "Cats Eye Gift Voucher"
 ];
 
 function doGet(e) {

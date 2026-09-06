@@ -21,7 +21,7 @@ G:\Exium\2026\Award\May-Jun\
 │   ├── Bata logo.jpg
 │   ├── Best Buy Logo.png
 │   ├── Infinity Logo.png
-│   └── Shwapno Logo.jpg
+│   └── Cats Eye Logo.jpeg
 │
 ├── FF list.xlsx                             # Official Field Force Master Hierarchy (1,856 territories)
 ├── Exium_Award_Choice_Master_2026.xlsx      # Master Excel file mapped with current FF list & transfers
@@ -70,7 +70,7 @@ Each achiever selects **1 voucher option** per award won:
 3. 👟 **Bata Gift Voucher** (Bata Bangladesh - Footwear & accessories)
 4. 🥻 **Aarong Gift Voucher** (Aarong / BRAC - Ethnic heritage & lifestyle)
 5. 🏠 **Best Buy Gift Voucher** (RFL Best Buy - Household & electronics retail)
-6. 🛒 **Shwapno Gift Voucher** (Shwapno Supermarket - Groceries & retail)
+6. 🐱 **Cats Eye Gift Voucher** (Cats Eye - Contemporary smart casuals & fashion)
 
 All 6 official logos and the Exium MUPS header logo are **base64-embedded directly into the HTML**, ensuring high visual fidelity with zero broken images even when offline.
 
