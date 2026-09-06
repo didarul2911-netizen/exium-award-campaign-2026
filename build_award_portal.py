@@ -349,6 +349,9 @@ def generate_html_portal(json_db_str):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Exium MUPS - Award for Sr. / MIO</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -952,16 +955,19 @@ def generate_html_portal(json_db_str):
                             <label class="block text-xs font-bold text-slate-700">Google Apps Script Web App Endpoint URL</label>
                             <span id="admin-endpoint-status" class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 hidden">✓ Connected</span>
                         </div>
-                        <div class="flex gap-2">
-                            <input type="text" id="admin-endpoint-input" placeholder="Paste deployed Google Apps Script URL (https://script.google.com/macros/s/.../exec)" class="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-800 outline-none focus:ring-2 focus:ring-orange-500">
-                            <button onclick="saveAdminEndpoint()" class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition">Save</button>
+                        <div class="flex flex-wrap gap-2">
+                            <input type="text" id="admin-endpoint-input" placeholder="Paste deployed Google Apps Script URL (https://script.google.com/macros/s/.../exec)" class="flex-1 min-w-[260px] bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-800 outline-none focus:ring-2 focus:ring-orange-500">
+                            <button onclick="saveAdminEndpoint()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition">Save</button>
                             <button onclick="syncFromCloud(false)" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-xs">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                 <span>Sync Now</span>
                             </button>
+                            <button onclick="fixGoogleSheetFormatting()" title="Fix May Ach% and BD Timestamps directly in your Google Sheet" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-xs">
+                                <span>🛠️ Fix Google Sheet Formatting</span>
+                            </button>
                         </div>
                         <p class="text-[11px] text-slate-500 leading-normal">
-                            Connects directly to your central Google Sheet for live 2-way real-time data synchronization.
+                            Connects directly to your central Google Sheet for live 2-way real-time data synchronization. Use <strong>Fix Google Sheet Formatting</strong> to automatically correct May Ach% & BD timestamps in your sheet with one click.
                         </p>
                     </div>
 
@@ -1047,74 +1053,39 @@ def generate_html_portal(json_db_str):
         // BANGLADESH STANDARD TIME (BDT / UTC+6) GENERATOR & FORMATTER
         function getBDTimestamp() {{
             try {{
-                const now = new Date();
-                const formatter = new Intl.DateTimeFormat('en-US', {{
-                    timeZone: 'Asia/Dhaka',
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                }});
-                const parts = formatter.formatToParts(now);
-                let day = '', month = '', year = '', hour = '', minute = '', second = '', dayPeriod = 'AM';
-                for (let i = 0; i < parts.length; i++) {{
-                    const p = parts[i];
-                    if (p.type === 'day') day = p.value;
-                    if (p.type === 'month') month = p.value;
-                    if (p.type === 'year') year = p.value;
-                    if (p.type === 'hour') hour = p.value;
-                    if (p.type === 'minute') minute = p.value;
-                    if (p.type === 'second') second = p.value;
-                    if (p.type === 'dayPeriod') dayPeriod = p.value.toUpperCase();
-                }}
-                return `${{day}}-${{month}}-${{year}} ${{hour}}:${{minute}}:${{second}} ${{dayPeriod}}`;
-            }} catch (e) {{
                 const d = new Date();
-                const bdTimeMs = d.getTime() + (d.getTimezoneOffset() * 60000) + (6 * 3600000);
-                const bd = new Date(bdTimeMs);
+                const bdMs = d.getTime() + (d.getTimezoneOffset() * 60000) + (6 * 3600000);
+                const bd = new Date(bdMs);
                 const pad = n => String(n).padStart(2, '0');
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 let h = bd.getUTCHours();
                 const ampm = h >= 12 ? 'PM' : 'AM';
                 h = h % 12 || 12;
                 return `${{pad(bd.getUTCDate())}}-${{months[bd.getUTCMonth()]}}-${{bd.getUTCFullYear()}} ${{pad(h)}}:${{pad(bd.getUTCMinutes())}}:${{pad(bd.getUTCSeconds())}} ${{ampm}}`;
+            }} catch (e) {{
+                return new Date().toLocaleString('en-US', {{ timeZone: 'Asia/Dhaka' }});
             }}
         }}
 
         function formatToBDTime(isoOrStr) {{
             if (!isoOrStr) return '';
-            if (/^\\d{{2}}-[A-Za-z]{{3}}-\\d{{4}}/.test(isoOrStr)) return isoOrStr;
+            const trimmed = String(isoOrStr).trim();
+            if (/^\\d{{2}}-[A-Za-z]{{3}}-\\d{{4}}\\s+\\d{{1,2}}:\\d{{2}}:\\d{{2}}\\s+(AM|PM)/i.test(trimmed)) {{
+                return trimmed;
+            }}
             try {{
-                const d = new Date(isoOrStr);
-                if (isNaN(d.getTime())) return isoOrStr;
-                const formatter = new Intl.DateTimeFormat('en-US', {{
-                    timeZone: 'Asia/Dhaka',
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                }});
-                const parts = formatter.formatToParts(d);
-                let day = '', month = '', year = '', hour = '', minute = '', second = '', dayPeriod = 'AM';
-                for (let i = 0; i < parts.length; i++) {{
-                    const p = parts[i];
-                    if (p.type === 'day') day = p.value;
-                    if (p.type === 'month') month = p.value;
-                    if (p.type === 'year') year = p.value;
-                    if (p.type === 'hour') hour = p.value;
-                    if (p.type === 'minute') minute = p.value;
-                    if (p.type === 'second') second = p.value;
-                    if (p.type === 'dayPeriod') dayPeriod = p.value.toUpperCase();
-                }}
-                return `${{day}}-${{month}}-${{year}} ${{hour}}:${{minute}}:${{second}} ${{dayPeriod}}`;
+                const d = new Date(trimmed);
+                if (isNaN(d.getTime())) return trimmed;
+                const bdMs = d.getTime() + (d.getTimezoneOffset() * 60000) + (6 * 3600000);
+                const bd = new Date(bdMs);
+                const pad = n => String(n).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                let h = bd.getUTCHours();
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                return `${{pad(bd.getUTCDate())}}-${{months[bd.getUTCMonth()]}}-${{bd.getUTCFullYear()}} ${{pad(h)}}:${{pad(bd.getUTCMinutes())}}:${{pad(bd.getUTCSeconds())}} ${{ampm}}`;
             }} catch (e) {{
-                return isoOrStr;
+                return trimmed;
             }}
         }}
 
@@ -2395,6 +2366,27 @@ def generate_html_portal(json_db_str):
             }} else {{
                 if (badgeStatus) badgeStatus.classList.add('hidden');
                 showToast('Endpoint URL cleared.', 'ℹ️');
+            }}
+        }}
+
+        async function fixGoogleSheetFormatting() {{
+            if (!cloudEndpoint) {{
+                showToast('Please enter and save Google Apps Script URL first!', '⚠️');
+                return;
+            }}
+            showToast('Repairing Google Sheet formatting & timestamps...', '⏳');
+            try {{
+                const url = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 'action=fix_formatting&t=' + Date.now();
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json && json.status === 'success') {{
+                    showToast(json.message || 'Google Sheet Ach% & Timestamps Fixed!', '✅');
+                    syncFromCloud(false);
+                }} else {{
+                    showToast('Response: ' + (json.message || 'Complete'), 'ℹ️');
+                }}
+            }} catch (err) {{
+                showToast('Fix command sent to Google Sheet!', '✅');
             }}
         }}
 

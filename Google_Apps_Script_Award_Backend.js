@@ -24,6 +24,15 @@ function doGet(e) {
   var p = (e && e.parameter) ? e.parameter : {};
   var action = p.action || "summary";
 
+  if (action === "fix_formatting") {
+    var msg = fixAllSheetsFormattingAndTimestamps(ss);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: msg,
+      timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (action === "fetch_data") {
     var month = p.month || "all";
     var result = {};
@@ -54,6 +63,28 @@ function doGet(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
+// Convert any input timestamp/ISO string into strict Bangladesh Standard Time (BDT / UTC+6)
+function toBangladeshTimeString(input) {
+  if (!input) {
+    return Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a");
+  }
+  if (typeof input === "string") {
+    var trimmed = input.trim();
+    if (/^\d{2}-[A-Za-z]{3}-\d{4}\s+\d{1,2}:\d{2}:\d{2}\s+(AM|PM)/i.test(trimmed)) {
+      return trimmed;
+    }
+    try {
+      var d = new Date(trimmed);
+      if (!isNaN(d.getTime())) {
+        return Utilities.formatDate(d, "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a");
+      }
+    } catch (err) {}
+  } else if (input instanceof Date && !isNaN(input.getTime())) {
+    return Utilities.formatDate(input, "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a");
+  }
+  return Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a");
+}
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
@@ -67,6 +98,8 @@ function doPost(e) {
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    ss.setSpreadsheetTimeZone("Asia/Dhaka");
+
     if (!e || !e.postData || !e.postData.contents) {
       return ContentService.createTextOutput(JSON.stringify({
         status: "error",
@@ -95,7 +128,7 @@ function doPost(e) {
         var areaCode = String(item.area_code || "").trim();
         var mioCode = String(item.mio_code || "").trim();
         var voucher = String(item.voucher || "").trim();
-        var timestamp = item.timestamp || Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a");
+        var timestamp = toBangladeshTimeString(item.timestamp);
 
         if (!areaCode) continue;
 
@@ -149,7 +182,9 @@ function doPost(e) {
 
             if (voucher) {
               sheet.getRange(rowIdx, voucherCol).setValue(voucher);
-              sheet.getRange(rowIdx, timeCol).setValue(timestamp);
+              var timeCell = sheet.getRange(rowIdx, timeCol);
+              timeCell.setNumberFormat('@'); // Plain text format so Google Sheets treats it as exact literal text
+              timeCell.setValue(timestamp);
               sheet.getRange(rowIdx, statusCol).setValue("Complete");
 
               // Highlight completed row in light amber (#FEF3C7)
@@ -269,4 +304,119 @@ function getAwardSummary(ss) {
   });
 
   return summary;
+}
+
+/**
+ * ONE-CLICK REPAIR TOOL FOR GOOGLE SHEETS
+ * Fixes May Ach% (divides by 100 if raw > 1, sets format 0.0%),
+ * fixes June Growth% (divides by 100 if raw > 1, sets format 0.0%),
+ * sets spreadsheet timezone to Asia/Dhaka, and converts existing timestamps to BDT.
+ */
+function fixAllSheetsFormattingAndTimestamps(ss) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.setSpreadsheetTimeZone("Asia/Dhaka");
+
+  var countMay = 0;
+  var countJun = 0;
+  var timeCountMay = 0;
+  var timeCountJun = 0;
+
+  // 1. Fix Award_May_2026
+  var sheetMay = ss.getSheetByName("Award_May_2026");
+  if (sheetMay) {
+    var lastRowMay = sheetMay.getLastRow();
+    if (lastRowMay >= 2) {
+      // Col 13 is Ach%
+      var achRange = sheetMay.getRange(2, 13, lastRowMay - 1, 1);
+      var achVals = achRange.getValues();
+      var achChanged = false;
+      for (var r = 0; r < achVals.length; r++) {
+        var v = achVals[r][0];
+        if (typeof v === "number" && v > 1) {
+          achVals[r][0] = v / 100.0;
+          achChanged = true;
+          countMay++;
+        }
+      }
+      if (achChanged) {
+        achRange.setValues(achVals);
+      }
+      achRange.setNumberFormat("0.0%");
+
+      // Col 16 is Timestamp
+      var timeRangeMay = sheetMay.getRange(2, 16, lastRowMay - 1, 1);
+      var timeValsMay = timeRangeMay.getValues();
+      var timeChangedMay = false;
+      for (var r = 0; r < timeValsMay.length; r++) {
+        var tv = timeValsMay[r][0];
+        if (tv) {
+          var bdStr = toBangladeshTimeString(tv);
+          if (bdStr !== tv) {
+            timeValsMay[r][0] = bdStr;
+            timeChangedMay = true;
+            timeCountMay++;
+          }
+        }
+      }
+      timeRangeMay.setNumberFormat("@");
+      if (timeChangedMay) {
+        timeRangeMay.setValues(timeValsMay);
+      }
+    }
+  }
+
+  // 2. Fix Award_June_2026
+  var sheetJun = ss.getSheetByName("Award_June_2026");
+  if (sheetJun) {
+    var lastRowJun = sheetJun.getLastRow();
+    if (lastRowJun >= 2) {
+      // Col 15 is Growth%
+      var grRange = sheetJun.getRange(2, 15, lastRowJun - 1, 1);
+      var grVals = grRange.getValues();
+      var grChanged = false;
+      for (var r = 0; r < grVals.length; r++) {
+        var gv = grVals[r][0];
+        if (typeof gv === "number" && gv > 1) {
+          grVals[r][0] = gv / 100.0;
+          grChanged = true;
+          countJun++;
+        }
+      }
+      if (grChanged) {
+        grRange.setValues(grVals);
+      }
+      grRange.setNumberFormat("0.0%");
+
+      // Col 18 is Timestamp
+      var timeRangeJun = sheetJun.getRange(2, 18, lastRowJun - 1, 1);
+      var timeValsJun = timeRangeJun.getValues();
+      var timeChangedJun = false;
+      for (var r = 0; r < timeValsJun.length; r++) {
+        var tv = timeValsJun[r][0];
+        if (tv) {
+          var bdStr = toBangladeshTimeString(tv);
+          if (bdStr !== tv) {
+            timeValsJun[r][0] = bdStr;
+            timeChangedJun = true;
+            timeCountJun++;
+          }
+        }
+      }
+      timeRangeJun.setNumberFormat("@");
+      if (timeChangedJun) {
+        timeRangeJun.setValues(timeValsJun);
+      }
+    }
+  }
+
+  return "Fixed May Ach% (" + countMay + " rows), June Growth% (" + countJun + " rows), and timestamps to BD Time.";
+}
+
+function onOpen() {
+  try {
+    SpreadsheetApp.getUi()
+      .createMenu("Exium Tools")
+      .addItem("🛠️ Fix May Ach% & BD Timestamps", "fixAllSheetsFormattingAndTimestamps")
+      .addToUi();
+  } catch (err) {}
 }

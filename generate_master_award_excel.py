@@ -102,7 +102,9 @@ def generate_master_excel():
         orig_mc = str(ws_may_src.cell(r, 6).value or "").strip()
         orig_mn = str(ws_may_src.cell(r, 7).value or "").strip()
         rx = ws_may_src.cell(r, 8).value
-        ach_pct = ws_may_src.cell(r, 9).value
+        ach_pct_raw = ws_may_src.cell(r, 9).value
+        # Raw value in source is e.g. 148.346. To display 148.3% properly in Excel/Google Sheets, scale by 100:
+        ach_pct = (ach_pct_raw / 100.0) if (isinstance(ach_pct_raw, (int, float)) and ach_pct_raw > 1) else ach_pct_raw
         award = ws_may_src.cell(r, 10).value
         
         if not orig_ac and not orig_mn: continue
@@ -142,7 +144,7 @@ def generate_master_excel():
                 c.alignment = Alignment(horizontal="center", vertical="center")
             elif c_idx == 13:
                 c.alignment = Alignment(horizontal="right", vertical="center")
-                if isinstance(c.value, (int, float)): c.number_format = '0.00%'
+                if isinstance(c.value, (int, float)): c.number_format = '0.0%'
             elif c_idx == 14:
                 c.alignment = Alignment(horizontal="right", vertical="center")
                 c.number_format = '#,##0'
@@ -151,6 +153,8 @@ def generate_master_excel():
             
             if c_idx in [15, 16, 17]:
                 c.fill = choice_fill
+                if c_idx == 16:
+                    c.number_format = '@' # Force Plain Text for Timestamp so time is never distorted
             elif is_tr == "YES" and c_idx >= 18:
                 c.fill = transfer_fill
         sl += 1
@@ -195,7 +199,9 @@ def generate_master_excel():
         rx = ws_jun_src.cell(r, 8).value
         sales_apr = ws_jun_src.cell(r, 9).value
         sales_jun = ws_jun_src.cell(r, 10).value
-        growth = ws_jun_src.cell(r, 11).value
+        growth_raw = ws_jun_src.cell(r, 11).value
+        # Raw value in source is e.g. 11.2129. To display 11.2% properly in Excel/Google Sheets, scale by 100:
+        growth = (growth_raw / 100.0) if (isinstance(growth_raw, (int, float)) and growth_raw > 1) else growth_raw
         award = ws_jun_src.cell(r, 12).value
         
         if not orig_ac and not orig_mn: continue
@@ -238,7 +244,7 @@ def generate_master_excel():
                 c.number_format = '#,##0.00'
             elif c_idx == 15:
                 c.alignment = Alignment(horizontal="right", vertical="center")
-                if isinstance(c.value, (int, float)): c.number_format = '0.00%'
+                if isinstance(c.value, (int, float)): c.number_format = '0.0%'
             elif c_idx == 16:
                 c.alignment = Alignment(horizontal="right", vertical="center")
                 c.number_format = '#,##0'
@@ -247,6 +253,8 @@ def generate_master_excel():
                 
             if c_idx in [17, 18, 19]:
                 c.fill = choice_fill
+                if c_idx == 18:
+                    c.number_format = '@' # Force Plain Text for Timestamp so time is never distorted
             elif is_tr == "YES" and c_idx >= 20:
                 c.fill = transfer_fill
         sl += 1
