@@ -1043,6 +1043,22 @@ def generate_html_portal(json_db_str):
             }}
         ];
 
+        // 12 Distinct Gentle Light Color Themes for MIO Profile & Territory Headers
+        const MIO_COLOR_PALETTES = [
+            {{ bg: 'bg-sky-50/80', border: 'border-sky-200/90', avatar: 'bg-sky-600', desigBg: 'bg-white/85 text-sky-900 border-sky-200' }},
+            {{ bg: 'bg-emerald-50/80', border: 'border-emerald-200/90', avatar: 'bg-emerald-600', desigBg: 'bg-white/85 text-emerald-900 border-emerald-200' }},
+            {{ bg: 'bg-amber-50/80', border: 'border-amber-200/90', avatar: 'bg-amber-600', desigBg: 'bg-white/85 text-amber-900 border-amber-200' }},
+            {{ bg: 'bg-purple-50/80', border: 'border-purple-200/90', avatar: 'bg-purple-600', desigBg: 'bg-white/85 text-purple-900 border-purple-200' }},
+            {{ bg: 'bg-rose-50/80', border: 'border-rose-200/90', avatar: 'bg-rose-600', desigBg: 'bg-white/85 text-rose-900 border-rose-200' }},
+            {{ bg: 'bg-teal-50/80', border: 'border-teal-200/90', avatar: 'bg-teal-600', desigBg: 'bg-white/85 text-teal-900 border-teal-200' }},
+            {{ bg: 'bg-indigo-50/80', border: 'border-indigo-200/90', avatar: 'bg-indigo-600', desigBg: 'bg-white/85 text-indigo-900 border-indigo-200' }},
+            {{ bg: 'bg-cyan-50/80', border: 'border-cyan-200/90', avatar: 'bg-cyan-600', desigBg: 'bg-white/85 text-cyan-900 border-cyan-200' }},
+            {{ bg: 'bg-orange-50/80', border: 'border-orange-200/90', avatar: 'bg-orange-600', desigBg: 'bg-white/85 text-orange-900 border-orange-200' }},
+            {{ bg: 'bg-violet-50/80', border: 'border-violet-200/90', avatar: 'bg-violet-600', desigBg: 'bg-white/85 text-violet-900 border-violet-200' }},
+            {{ bg: 'bg-lime-50/80', border: 'border-lime-200/90', avatar: 'bg-lime-600', desigBg: 'bg-white/85 text-lime-950 border-lime-200' }},
+            {{ bg: 'bg-fuchsia-50/80', border: 'border-fuchsia-200/90', avatar: 'bg-fuchsia-600', desigBg: 'bg-white/85 text-fuchsia-900 border-fuchsia-200' }}
+        ];
+
         let currentRegionName = '';
         let currentActiveZoneCode = '';
         let currentMonthKey = 'May_2026';
@@ -1475,9 +1491,10 @@ def generate_html_portal(json_db_str):
                 return;
             }}
 
-            mios.forEach(mio => {{
+            mios.forEach((mio, mioIdx) => {{
                 const status = getMioStatus(mio);
                 const totalAwardVal = (mio.may_award ? Number(mio.may_award.award) : 0) + (mio.jun_award ? Number(mio.jun_award.award) : 0);
+                const theme = MIO_COLOR_PALETTES[mioIdx % MIO_COLOR_PALETTES.length];
 
                 const card = document.createElement('div');
                 card.id = `mio-card-${{mio.key}}`;
@@ -1521,7 +1538,7 @@ def generate_html_portal(json_db_str):
                     `;
                 }} else {{
                     statusBadgeHtml = `
-                        <span class="px-3.5 py-1.5 rounded-full text-xs font-black bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5">
+                        <span class="px-3.5 py-1.5 rounded-full text-xs font-black bg-white/95 text-slate-700 border border-slate-300/80 flex items-center gap-1.5 shadow-2xs">
                             <span>⚪</span>
                             <span>Pending (0/${{status.eligibleMonths}})</span>
                         </span>
@@ -1534,16 +1551,16 @@ def generate_html_portal(json_db_str):
                 if (mio.jun_award) eligibilityMonthsList.push('June');
                 const monthEligibilityText = eligibilityMonthsList.join(' & ');
 
-                // Card Header: Territory and MIO Name Together
+                // Card Header: Territory and MIO Name Together with Individual Light Color Theme
                 let headerHtml = `
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div class="rounded-2xl border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${{theme.bg}} ${{theme.border}}">
                         <div class="flex items-start space-x-3.5">
-                            <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-base shadow-sm flex-shrink-0">
+                            <div class="w-12 h-12 rounded-2xl ${{theme.avatar}} text-white flex items-center justify-center font-black text-base shadow-sm flex-shrink-0">
                                 ${{mio.mio_name ? mio.mio_name.charAt(0).toUpperCase() : 'M'}}
                             </div>
-                            <div class="space-y-1">
+                            <div class="space-y-1.5">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="bg-orange-500 text-white text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                                    <span class="bg-orange-500 text-white text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-xs">
                                         <span>📍</span>
                                         <span>${{mio.area_name}} (${{mio.area_code}})</span>
                                     </span>
@@ -1551,15 +1568,15 @@ def generate_html_portal(json_db_str):
                                     <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                                         ${{mio.mio_name}}
                                     </h3>
-                                    <span class="bg-blue-50 text-blue-700 font-mono text-xs font-black px-2 py-0.5 rounded-md border border-blue-200">
+                                    <span class="bg-white/95 text-blue-700 font-mono text-xs font-black px-2 py-0.5 rounded-md border border-blue-200/80 shadow-2xs">
                                         MIO: ${{mio.mio_code}}
                                     </span>
                                 </div>
-                                <div class="flex items-center gap-2 text-xs text-slate-500 font-medium flex-wrap">
-                                    <span class="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded">${{mio.desig || 'Medical Information Officer'}}</span>
-                                    <span>•</span>
+                                <div class="flex items-center gap-2 text-xs text-slate-600 font-medium flex-wrap">
+                                    <span class="font-bold ${{theme.desigBg}} px-2 py-0.5 rounded text-[11px] border shadow-2xs">${{mio.desig || 'Medical Information Officer'}}</span>
+                                    <span class="text-slate-300">•</span>
                                     <span>Eligible: <strong class="text-slate-800 font-bold">${{monthEligibilityText}}</strong> (${{status.eligibleMonths}} Month${{status.eligibleMonths > 1 ? 's' : ''}})</span>
-                                    <span>•</span>
+                                    <span class="text-slate-300">•</span>
                                     <span>Total Award: <strong class="text-orange-600 font-black">${{totalAwardVal.toLocaleString()}}</strong></span>
                                 </div>
                             </div>
@@ -1972,9 +1989,10 @@ def generate_html_portal(json_db_str):
                 return;
             }}
 
-            matchedPersons.slice(0, 10).forEach(p => {{
+            matchedPersons.slice(0, 10).forEach((p, pIdx) => {{
                 // Sort awards chronologically (May first, then June)
                 p.awards.sort((a, b) => (a.month === 'May_2026' ? -1 : 1));
+                const theme = MIO_COLOR_PALETTES[pIdx % MIO_COLOR_PALETTES.length];
 
                 const card = document.createElement('div');
                 card.className = 'p-4 sm:p-5 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs space-y-3.5';
@@ -2046,19 +2064,22 @@ def generate_html_portal(json_db_str):
                 }}
 
                 card.innerHTML = `
-                    <!-- 1. Person Header (Shown Once) -->
-                    <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                    <!-- 1. Person Header (Shown Once) with Light Theme -->
+                    <div class="p-3 rounded-xl border flex items-start justify-between gap-2 shadow-2xs ${{theme.bg}} ${{theme.border}}">
                         <div>
                             <div class="flex items-center gap-1.5 flex-wrap mb-1">
-                                <span class="px-2 py-0.5 rounded-md font-black text-[10px] bg-slate-900 text-white shadow-sm">
+                                <span class="bg-orange-500 text-white text-[11px] font-black px-2 py-0.5 rounded-md shadow-2xs">
+                                    📍 ${{p.area_name}} (${{p.area_code}})
+                                </span>
+                                <span class="px-2 py-0.5 rounded-md font-black text-[10px] bg-slate-900 text-white shadow-2xs">
                                     SAP MIO: ${{p.mio_code}}
                                 </span>
-                                <span class="px-2 py-0.5 rounded-md font-bold text-[10px] bg-orange-50 text-orange-800 border border-orange-200">
+                                <span class="px-2 py-0.5 rounded-md font-bold text-[10px] bg-white/90 text-orange-800 border border-orange-200 shadow-2xs">
                                     ${{p.awards.length}} ${{p.awards.length > 1 ? 'Months Qualified' : 'Month Qualified'}}
                                 </span>
                             </div>
                             <h4 class="text-base font-black text-slate-900 tracking-tight">${{p.mio_name}}</h4>
-                            <div class="text-xs text-slate-500 font-semibold mt-0.5">${{p.desig}}</div>
+                            <div class="text-xs text-slate-600 font-semibold mt-0.5">${{p.desig}}</div>
                         </div>
                     </div>
 
