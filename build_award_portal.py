@@ -1554,31 +1554,26 @@ def generate_html_portal(json_db_str):
                 // Card Header: Territory and MIO Name Together with Individual Light Color Theme
                 let headerHtml = `
                     <div class="rounded-2xl border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${{theme.bg}} ${{theme.border}}">
-                        <div class="flex items-start space-x-3.5">
-                            <div class="w-12 h-12 rounded-2xl ${{theme.avatar}} text-white flex items-center justify-center font-black text-base shadow-sm flex-shrink-0">
-                                ${{mio.mio_name ? mio.mio_name.charAt(0).toUpperCase() : 'M'}}
+                        <div class="space-y-1.5">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="bg-orange-500 text-white text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-xs">
+                                    <span>📍</span>
+                                    <span>${{mio.area_name}} (${{mio.area_code}})</span>
+                                </span>
+                                <span class="text-slate-300 font-light">•</span>
+                                <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                                    ${{mio.mio_name}}
+                                </h3>
+                                <span class="bg-white/95 text-blue-700 font-mono text-xs font-black px-2 py-0.5 rounded-md border border-blue-200/80 shadow-2xs">
+                                    MIO: ${{mio.mio_code}}
+                                </span>
                             </div>
-                            <div class="space-y-1.5">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="bg-orange-500 text-white text-xs font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-xs">
-                                        <span>📍</span>
-                                        <span>${{mio.area_name}} (${{mio.area_code}})</span>
-                                    </span>
-                                    <span class="text-slate-300 font-light">•</span>
-                                    <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                                        ${{mio.mio_name}}
-                                    </h3>
-                                    <span class="bg-white/95 text-blue-700 font-mono text-xs font-black px-2 py-0.5 rounded-md border border-blue-200/80 shadow-2xs">
-                                        MIO: ${{mio.mio_code}}
-                                    </span>
-                                </div>
-                                <div class="flex items-center gap-2 text-xs text-slate-600 font-medium flex-wrap">
-                                    <span class="font-bold ${{theme.desigBg}} px-2 py-0.5 rounded text-[11px] border shadow-2xs">${{mio.desig || 'Medical Information Officer'}}</span>
-                                    <span class="text-slate-300">•</span>
-                                    <span>Eligible: <strong class="text-slate-800 font-bold">${{monthEligibilityText}}</strong> (${{status.eligibleMonths}} Month${{status.eligibleMonths > 1 ? 's' : ''}})</span>
-                                    <span class="text-slate-300">•</span>
-                                    <span>Total Award: <strong class="text-orange-600 font-black">${{totalAwardVal.toLocaleString()}}</strong></span>
-                                </div>
+                            <div class="flex items-center gap-2 text-xs text-slate-600 font-medium flex-wrap">
+                                <span class="font-bold ${{theme.desigBg}} px-2 py-0.5 rounded text-[11px] border shadow-2xs">${{mio.desig || 'Medical Information Officer'}}</span>
+                                <span class="text-slate-300">•</span>
+                                <span>Eligible: <strong class="text-slate-800 font-bold">${{monthEligibilityText}}</strong> (${{status.eligibleMonths}} Month${{status.eligibleMonths > 1 ? 's' : ''}})</span>
+                                <span class="text-slate-300">•</span>
+                                <span>Total Award: <strong class="text-orange-600 font-black">${{totalAwardVal.toLocaleString()}}</strong></span>
                             </div>
                         </div>
 
