@@ -890,7 +890,7 @@ def generate_html_portal(json_db_str):
     <!-- MODAL: ADMIN PANEL LOGIN & DASHBOARD           -->
     <!-- ============================================== -->
     <div id="admin-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
+        <div class="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
             
             <div class="bg-white p-4 sm:p-5 border-b border-slate-200 flex justify-between items-center">
                 <div class="flex items-center space-x-2.5">
@@ -943,6 +943,118 @@ def generate_html_portal(json_db_str):
                             <div id="admin-stat-pending" class="text-2xl font-black text-amber-800 mt-0.5">1,541</div>
                             <div class="text-[10px] text-amber-600">Awaiting choice</div>
                         </div>
+                    </div>
+
+                    <!-- Region-Wise Submission & Completion Status Table -->
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                        
+                        <!-- Header & Controls -->
+                        <div class="p-3.5 sm:p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2.5">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-base">📊</span>
+                                        <h4 class="font-black text-xs sm:text-sm text-slate-900 uppercase tracking-wider">
+                                            Region-wise Input & Submission Tracking
+                                        </h4>
+                                        <span id="admin-reg-total-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-700">250 Regions</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">
+                                        Monitor which Regional Heads have completed inputs, who is in progress, and who has not started yet.
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <button type="button" onclick="copyPendingRegionsSummary()" title="Copy list of all pending regions to clipboard" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs">
+                                        <span>📋</span>
+                                        <span>Copy Pending List</span>
+                                    </button>
+                                    <button type="button" onclick="exportRegionSummaryToExcel()" title="Export region completion status table to Excel" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        <span>Export Regions (.xlsx)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Region Status Overview Mini-Cards -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                                <div class="bg-white border border-emerald-200 rounded-xl p-2.5 text-center shadow-2xs">
+                                    <div class="text-[10px] font-bold text-emerald-700 uppercase">100% Completed</div>
+                                    <div id="admin-reg-stat-completed" class="text-lg font-black text-emerald-800">0</div>
+                                    <div class="text-[9px] text-emerald-600 font-medium">All inputs given</div>
+                                </div>
+                                <div class="bg-white border border-amber-200 rounded-xl p-2.5 text-center shadow-2xs">
+                                    <div class="text-[10px] font-bold text-amber-700 uppercase">In Progress</div>
+                                    <div id="admin-reg-stat-inprogress" class="text-lg font-black text-amber-800">0</div>
+                                    <div class="text-[9px] text-amber-600 font-medium">Partially submitted</div>
+                                </div>
+                                <div class="bg-white border border-rose-200 rounded-xl p-2.5 text-center shadow-2xs">
+                                    <div class="text-[10px] font-bold text-rose-700 uppercase">Not Started</div>
+                                    <div id="admin-reg-stat-notstarted" class="text-lg font-black text-rose-800">250</div>
+                                    <div class="text-[9px] text-rose-600 font-medium">0% input given</div>
+                                </div>
+                                <div class="bg-white border border-slate-200 rounded-xl p-2.5 text-center shadow-2xs">
+                                    <div class="text-[10px] font-bold text-slate-500 uppercase">Pending Inputs</div>
+                                    <div id="admin-reg-stat-pendingawards" class="text-lg font-black text-slate-800">1,541</div>
+                                    <div class="text-[9px] text-slate-500 font-medium">Achievers awaiting choice</div>
+                                </div>
+                            </div>
+
+                            <!-- Search, Filter & Sort Controls -->
+                            <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200/80">
+                                <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
+                                    <div class="relative flex-1 min-w-[180px]">
+                                        <input type="text" id="admin-reg-search" oninput="renderAdminRegionTable()" placeholder="Search region, regional head, zone..." class="w-full bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-orange-500">
+                                        <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                    </div>
+                                    <select id="admin-reg-sort" onchange="renderAdminRegionTable()" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
+                                        <option value="pending_first">Sort: Pending First (Default)</option>
+                                        <option value="completed_first">Sort: Completed First</option>
+                                        <option value="achievers_desc">Sort: Most Achievers</option>
+                                        <option value="pct_asc">Sort: Progress % (Low to High)</option>
+                                        <option value="pct_desc">Sort: Progress % (High to Low)</option>
+                                        <option value="name_asc">Sort: Region Name (A-Z)</option>
+                                        <option value="zone_asc">Sort: Zone Name (A-Z)</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-1 overflow-x-auto pb-0.5" id="admin-reg-filter-pills">
+                                    <button type="button" onclick="setAdminRegionFilter('all')" id="rf-pill-all" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-900 text-white transition">All (250)</button>
+                                    <button type="button" onclick="setAdminRegionFilter('pending')" id="rf-pill-pending" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 transition">⚠️ Any Pending</button>
+                                    <button type="button" onclick="setAdminRegionFilter('not_started')" id="rf-pill-not_started" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 transition">🔴 Not Started</button>
+                                    <button type="button" onclick="setAdminRegionFilter('in_progress')" id="rf-pill-in_progress" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 transition">🟡 In Progress</button>
+                                    <button type="button" onclick="setAdminRegionFilter('completed')" id="rf-pill-completed" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 transition">🟢 Completed</button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Scrollable Table Body -->
+                        <div class="max-h-80 overflow-y-auto overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
+                                    <tr>
+                                        <th class="py-2.5 px-3 w-10 text-center">#</th>
+                                        <th class="py-2.5 px-3 min-w-[200px]">Region & Regional Head</th>
+                                        <th class="py-2.5 px-3 min-w-[120px]">Zone</th>
+                                        <th class="py-2.5 px-3 text-center min-w-[90px]">Total Awards</th>
+                                        <th class="py-2.5 px-3 text-center min-w-[80px]">Input Given</th>
+                                        <th class="py-2.5 px-3 text-center min-w-[80px]">Pending</th>
+                                        <th class="py-2.5 px-3 min-w-[130px]">Completion Progress</th>
+                                        <th class="py-2.5 px-3 text-center min-w-[110px]">Status</th>
+                                        <th class="py-2.5 px-3 text-center min-w-[80px]">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-region-tbody" class="divide-y divide-slate-100 font-medium bg-white">
+                                    <!-- Populated dynamically by renderAdminRegionTable() -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Footer Summary of Filtered Rows -->
+                        <div class="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap justify-between items-center text-[11px] text-slate-500 gap-2">
+                            <span id="admin-reg-showing-count">Showing 250 of 250 regions</span>
+                            <span class="italic">Click "View ↗" to instantly open any region's award cards</span>
+                        </div>
+
                     </div>
 
                     <!-- Voucher Brand Breakdown Table -->
@@ -2588,6 +2700,309 @@ def generate_html_portal(json_db_str):
                 `;
                 tbody.appendChild(row);
             }});
+
+            renderAdminRegionTable();
+        }}
+
+        let currentAdminRegionFilter = 'all';
+
+        function setAdminRegionFilter(filter) {{
+            currentAdminRegionFilter = filter;
+            const pills = ['all', 'pending', 'not_started', 'in_progress', 'completed'];
+            pills.forEach(p => {{
+                const btn = document.getElementById('rf-pill-' + p);
+                if (!btn) return;
+                if (p === filter) {{
+                    btn.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-900 text-white transition';
+                }} else {{
+                    btn.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 transition';
+                }}
+            }});
+            renderAdminRegionTable();
+        }}
+
+        function getRegionCompletionStats() {{
+            const statsMap = {{}};
+
+            Object.values(DB.regions_map).forEach(r => {{
+                const total = (r.may_count || 0) + (r.jun_count || 0);
+                if (total > 0) {{
+                    statsMap[r.region_name] = {{
+                        region_name: r.region_name,
+                        sap_region_code: r.sap_region_code,
+                        regional_head: r.regional_head || 'Not Assigned',
+                        zone_name: r.zone_name || '-',
+                        sap_zone_code: r.sap_zone_code || '',
+                        zonal_head: r.zonal_head || '-',
+                        total_may: r.may_count || 0,
+                        total_jun: r.jun_count || 0,
+                        total_awards: total,
+                        completed_awards: 0,
+                        pending_awards: total,
+                        pct: 0,
+                        status: 'not_started'
+                    }};
+                }}
+            }});
+
+            DB.achievers_may.forEach(a => {{
+                const reg = a.region;
+                if (statsMap[reg]) {{
+                    const ch = savedChoices[a.id];
+                    if (ch && ch.voucher) {{
+                        statsMap[reg].completed_awards++;
+                    }}
+                }}
+            }});
+
+            DB.achievers_jun.forEach(a => {{
+                const reg = a.region;
+                if (statsMap[reg]) {{
+                    const ch = savedChoices[a.id];
+                    if (ch && ch.voucher) {{
+                        statsMap[reg].completed_awards++;
+                    }}
+                }}
+            }});
+
+            return Object.values(statsMap).map(item => {{
+                item.pending_awards = item.total_awards - item.completed_awards;
+                item.pct = item.total_awards > 0 ? (item.completed_awards / item.total_awards) * 100 : 0;
+                if (item.completed_awards === 0) {{
+                    item.status = 'not_started';
+                }} else if (item.completed_awards === item.total_awards) {{
+                    item.status = 'completed';
+                }} else {{
+                    item.status = 'in_progress';
+                }}
+                return item;
+            }});
+        }}
+
+        function renderAdminRegionTable() {{
+            const allStats = getRegionCompletionStats();
+            let completedCount = 0;
+            let inProgressCount = 0;
+            let notStartedCount = 0;
+            let totalPendingAwards = 0;
+
+            allStats.forEach(r => {{
+                if (r.status === 'completed') completedCount++;
+                else if (r.status === 'in_progress') inProgressCount++;
+                else notStartedCount++;
+                totalPendingAwards += r.pending_awards;
+            }});
+
+            const elCompleted = document.getElementById('admin-reg-stat-completed');
+            const elInProgress = document.getElementById('admin-reg-stat-inprogress');
+            const elNotStarted = document.getElementById('admin-reg-stat-notstarted');
+            const elPendingAwards = document.getElementById('admin-reg-stat-pendingawards');
+            const elTotalBadge = document.getElementById('admin-reg-total-badge');
+
+            if (elCompleted) elCompleted.textContent = completedCount;
+            if (elInProgress) elInProgress.textContent = inProgressCount;
+            if (elNotStarted) elNotStarted.textContent = notStartedCount;
+            if (elPendingAwards) elPendingAwards.textContent = totalPendingAwards.toLocaleString();
+            if (elTotalBadge) elTotalBadge.textContent = `${{allStats.length}} Regions`;
+
+            const pillAll = document.getElementById('rf-pill-all');
+            const pillPending = document.getElementById('rf-pill-pending');
+            const pillNotStarted = document.getElementById('rf-pill-not_started');
+            const pillInProgress = document.getElementById('rf-pill-in_progress');
+            const pillCompleted = document.getElementById('rf-pill-completed');
+            if (pillAll) pillAll.textContent = `All (${{allStats.length}})`;
+            if (pillPending) pillPending.textContent = `⚠️ Any Pending (${{inProgressCount + notStartedCount}})`;
+            if (pillNotStarted) pillNotStarted.textContent = `🔴 Not Started (${{notStartedCount}})`;
+            if (pillInProgress) pillInProgress.textContent = `🟡 In Progress (${{inProgressCount}})`;
+            if (pillCompleted) pillCompleted.textContent = `🟢 Completed (${{completedCount}})`;
+
+            const searchInput = document.getElementById('admin-reg-search');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+            let filtered = allStats.filter(r => {{
+                if (currentAdminRegionFilter === 'completed' && r.status !== 'completed') return false;
+                if (currentAdminRegionFilter === 'in_progress' && r.status !== 'in_progress') return false;
+                if (currentAdminRegionFilter === 'not_started' && r.status !== 'not_started') return false;
+                if (currentAdminRegionFilter === 'pending' && r.pending_awards === 0) return false;
+
+                if (query) {{
+                    const matchName = r.region_name.toLowerCase().includes(query);
+                    const matchSap = String(r.sap_region_code).toLowerCase().includes(query);
+                    const matchRh = r.regional_head.toLowerCase().includes(query);
+                    const matchZone = r.zone_name.toLowerCase().includes(query);
+                    if (!matchName && !matchSap && !matchRh && !matchZone) return false;
+                }}
+                return true;
+            }});
+
+            const sortSelect = document.getElementById('admin-reg-sort');
+            const sortVal = sortSelect ? sortSelect.value : 'pending_first';
+
+            filtered.sort((a, b) => {{
+                if (sortVal === 'pending_first') {{
+                    if (b.pending_awards !== a.pending_awards) return b.pending_awards - a.pending_awards;
+                    return a.pct - b.pct;
+                }} else if (sortVal === 'completed_first') {{
+                    if (b.pct !== a.pct) return b.pct - a.pct;
+                    return a.pending_awards - b.pending_awards;
+                }} else if (sortVal === 'achievers_desc') {{
+                    return b.total_awards - a.total_awards;
+                }} else if (sortVal === 'pct_asc') {{
+                    return a.pct - b.pct;
+                }} else if (sortVal === 'pct_desc') {{
+                    return b.pct - a.pct;
+                }} else if (sortVal === 'name_asc') {{
+                    return a.region_name.localeCompare(b.region_name);
+                }} else if (sortVal === 'zone_asc') {{
+                    return a.zone_name.localeCompare(b.zone_name);
+                }}
+                return 0;
+            }});
+
+            const tbody = document.getElementById('admin-region-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {{
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-slate-400 font-medium">
+                            No regions found matching the current search / filter criteria.
+                        </td>
+                    </tr>
+                `;
+            }} else {{
+                filtered.forEach((r, idx) => {{
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50/80 transition';
+
+                    let statusBadge = '';
+                    if (r.status === 'completed') {{
+                        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 100% Completed</span>';
+                    }} else if (r.status === 'in_progress') {{
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">🟡 In Progress (${{r.completed_awards}}/${{r.total_awards}})</span>`;
+                    }} else {{
+                        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">🔴 Not Started</span>';
+                    }}
+
+                    const pctFormatted = r.pct.toFixed(1);
+                    const barColor = r.status === 'completed' ? 'bg-emerald-500' : (r.status === 'in_progress' ? 'bg-amber-500' : 'bg-slate-200');
+
+                    tr.innerHTML = `
+                        <td class="py-2.5 px-3 text-center text-slate-400 font-mono text-[11px]">${{idx + 1}}</td>
+                        <td class="py-2.5 px-3">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-bold text-slate-900">${{r.region_name}}</span>
+                                <span class="px-1.5 py-0.2 text-[10px] font-mono font-bold text-slate-600 bg-slate-100 rounded border border-slate-200">SAP: ${{r.sap_region_code}}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                <span>👤</span>
+                                <span class="font-semibold text-slate-700">${{r.regional_head}}</span>
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-600">
+                            <div class="font-medium text-slate-800">${{r.zone_name}}</div>
+                            <div class="text-[10px] text-slate-400 font-mono">${{r.sap_zone_code || ''}}</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-900">
+                            <span>${{r.total_awards}}</span>
+                            <div class="text-[10px] text-slate-400 font-normal">May:${{r.total_may}} | Jun:${{r.total_jun}}</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="font-bold ${{r.completed_awards > 0 ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200' : 'text-slate-400'}}">${{r.completed_awards}}</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="font-bold ${{r.pending_awards > 0 ? 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200' : 'text-slate-400'}}">${{r.pending_awards}}</span>
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200 min-w-[50px]">
+                                    <div class="${{barColor}} h-full transition-all duration-300" style="width: ${{pctFormatted}}%"></div>
+                                </div>
+                                <span class="font-mono text-[10px] font-bold ${{r.pct === 100 ? 'text-emerald-700' : (r.pct > 0 ? 'text-amber-700' : 'text-slate-400')}} min-w-[36px] text-right">${{pctFormatted}}%</span>
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            ${{statusBadge}}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <button type="button" onclick="adminViewRegion('${{r.region_name.replace(/'/g, "\\\\'")}}')" class="px-2 py-1 bg-slate-100 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 text-slate-700 rounded-lg text-[11px] font-bold border border-slate-200 transition shadow-2xs">
+                                View ↗
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }});
+            }}
+
+            const elShowing = document.getElementById('admin-reg-showing-count');
+            if (elShowing) {{
+                elShowing.textContent = `Showing ${{filtered.length}} of ${{allStats.length}} regions`;
+            }}
+        }}
+
+        function adminViewRegion(regName) {{
+            closeAdminModal();
+            openRegionalView(regName);
+        }}
+
+        function copyPendingRegionsSummary() {{
+            const list = getRegionCompletionStats().filter(r => r.pending_awards > 0);
+            if (list.length === 0) {{
+                showToast('All regions have completed their submissions! 🎉', '✅');
+                return;
+            }}
+            const bdTime = formatToBDTime(new Date());
+            let text = '📢 Exium Award Campaign 2026 - Pending Regions (' + list.length + ' Regions Pending)\\n';
+            text += 'Recorded at: ' + bdTime + '\\n\\n';
+            list.forEach((r, i) => {{
+                text += (i + 1) + '. ' + r.region_name + ' (SAP: ' + r.sap_region_code + ') | RH: ' + r.regional_head + ' | Zone: ' + r.zone_name + ' | Pending: ' + r.pending_awards + '/' + r.total_awards + '\\n';
+            }});
+            text += '\\nPortal Link: https://tinyurl.com/exium-award-choice-2026';
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {{
+                navigator.clipboard.writeText(text).then(() => {{
+                    showToast('Copied ' + list.length + ' pending regions to clipboard! 📋', '✅');
+                }}).catch(() => {{
+                    prompt('Copy pending regions:', text);
+                }});
+            }} else {{
+                prompt('Copy pending regions:', text);
+            }}
+        }}
+
+        function exportRegionSummaryToExcel() {{
+            const list = getRegionCompletionStats();
+            if (!list || list.length === 0) {{
+                showToast('No region data available to export!', '⚠️');
+                return;
+            }}
+            const rows = list.map((r, i) => ({{
+                'SL': i + 1,
+                'Zone Name': r.zone_name,
+                'SAP Zone Code': r.sap_zone_code,
+                'Zonal Head': r.zonal_head,
+                'Region Name': r.region_name,
+                'SAP Region Code': r.sap_region_code,
+                'Regional Head': r.regional_head,
+                'Total Award Achievers': r.total_awards,
+                'May Achievers': r.total_may,
+                'June Achievers': r.total_jun,
+                'Inputs Given (Completed)': r.completed_awards,
+                'Pending Inputs': r.pending_awards,
+                'Completion %': r.pct.toFixed(1) + '%',
+                'Status': r.status === 'completed' ? '100% Completed' : (r.status === 'in_progress' ? 'In Progress' : 'Not Started')
+            }}));
+
+            if (typeof XLSX !== 'undefined') {{
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Region_Submission_Status');
+                XLSX.writeFile(wb, 'Exium_Region_Submission_Status_2026.xlsx');
+                showToast('Region status exported to Excel! 📊', '✅');
+            }} else {{
+                showToast('Excel exporter library not loaded!', '⚠️');
+            }}
         }}
 
         function updateSubmissionLockUI() {{
