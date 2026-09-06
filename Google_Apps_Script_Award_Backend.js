@@ -33,11 +33,16 @@ function doGet(e) {
     if (month === "all" || month === "June_2026") {
       result["June_2026"] = getSheetChoices(ss, "Award_June_2026");
     }
-    return ContentService.createTextOutput(JSON.stringify({
+    var jsonStr = JSON.stringify({
       status: "success",
       data: result,
       timestamp: new Date().toISOString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    });
+    if (p.callback) {
+      return ContentService.createTextOutput(p.callback + "(" + jsonStr + ")")
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(jsonStr).setMimeType(ContentService.MimeType.JSON);
   }
 
   var summary = getAwardSummary(ss);
@@ -188,11 +193,13 @@ function getSheetChoices(ss, sheetName) {
 
   var isJune = (sheetName === "Award_June_2026");
   var voucherCol = isJune ? 17 : 15;
+  var timeCol = isJune ? 18 : 16;
   var statusCol = isJune ? 19 : 17;
 
   var areaVals = sheet.getRange(2, 7, lastRow - 1, 1).getValues();
   var mioVals = sheet.getRange(2, 9, lastRow - 1, 1).getValues();
   var voucherVals = sheet.getRange(2, voucherCol, lastRow - 1, 1).getValues();
+  var timeVals = sheet.getRange(2, timeCol, lastRow - 1, 1).getValues();
   var statusVals = sheet.getRange(2, statusCol, lastRow - 1, 1).getValues();
 
   for (var i = 0; i < areaVals.length; i++) {
@@ -200,10 +207,11 @@ function getSheetChoices(ss, sheetName) {
     var mc = String(mioVals[i][0] || "").trim();
     var v = String(voucherVals[i][0] || "").trim();
     var s = String(statusVals[i][0] || "").trim();
+    var t = String(timeVals[i][0] || "").trim();
 
     if (ac && v) {
       var key = ac + "_" + mc;
-      choices[key] = { voucher: v, status: s };
+      choices[key] = { voucher: v, status: s, timestamp: t };
     }
   }
   return choices;
