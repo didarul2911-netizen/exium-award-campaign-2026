@@ -202,6 +202,20 @@
         <!-- ============================================== -->
         <section id="regional-view" class="hidden space-y-5">
 
+            <!-- Locked Notification Banner (Shown when admin locks submissions) -->
+            <div id="regview-locked-banner" class="hidden bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-950 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700 text-xl font-black flex-shrink-0">
+                        🔒
+                    </div>
+                    <div>
+                        <div class="font-black text-xs sm:text-sm text-rose-950">Voucher Selection is Currently CLOSED (Read-Only Mode)</div>
+                        <div class="text-[11px] text-rose-700 mt-0.5">The Central Administrator has locked submissions. Existing choices are preserved and cannot be modified.</div>
+                    </div>
+                </div>
+                <span class="px-3 py-1 bg-rose-200 text-rose-900 text-xs font-black rounded-xl border border-rose-300 flex-shrink-0 self-start sm:self-center">Submissions Locked</span>
+            </div>
+
             <!-- Regional Banner Card -->
             <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -603,6 +617,58 @@
                         </table>
                     </div>
 
+                    <!-- Admin Controls: Regional Head Input Control (On/Off) & Data Reset -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        
+                        <!-- 1. Regional Head Input On/Off Toggle -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2.5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2 mb-1.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-base">🔒</span>
+                                        <h4 class="font-black text-xs sm:text-sm text-slate-900">Regional Head Input Control</h4>
+                                    </div>
+                                    <span id="admin-lock-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 Input ON (Active)</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 leading-snug">
+                                    Enable or freeze voucher choices for Regional Heads. When <strong>OFF (Locked)</strong>, the portal switches to Read-Only mode.
+                                </p>
+                            </div>
+                            <div class="pt-1">
+                                <button id="admin-toggle-lock-btn" onclick="toggleSubmissionLock()" class="w-full py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 shadow-xs bg-rose-600 hover:bg-rose-700 text-white">
+                                    <span>🔒 Turn OFF Input (Lock Submissions)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 2. Data Deletion & Reset Center -->
+                        <div class="bg-rose-50/60 border border-rose-200 rounded-2xl p-4 space-y-2.5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2 mb-1.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-base">🗑️</span>
+                                        <h4 class="font-black text-xs sm:text-sm text-rose-950">Data Deletion & Reset</h4>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">Admin Only</span>
+                                </div>
+                                <p class="text-[11px] text-rose-900/80 leading-snug">
+                                    Clear submitted choices and reset MIO records back to <strong>Pending</strong> (with double-confirmation protection).
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <button onclick="adminDeleteCurrentRegionData()" title="Clear choices only for active region" class="py-2 px-2.5 bg-white hover:bg-rose-50 text-rose-700 font-bold rounded-xl border border-rose-300 text-xs transition flex items-center justify-center gap-1 shadow-2xs">
+                                    <span>🗑️</span>
+                                    <span>Reset Region</span>
+                                </button>
+                                <button onclick="adminDeleteAllNationalData()" title="Clear choices for all MIOs nationwide" class="py-2 px-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl text-xs transition flex items-center justify-center gap-1 shadow-xs">
+                                    <span>⚠️</span>
+                                    <span>Delete All Data</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
                     <!-- Google Apps Script URL Endpoint -->
                     <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
                         <div class="flex items-center justify-between">
@@ -719,6 +785,7 @@
         let savedChoices = JSON.parse(localStorage.getItem('EXIUM_AWARD_CHOICES') || '{}');
         let cloudEndpoint = localStorage.getItem('EXIUM_AWARD_ENDPOINT') || '';
         let isAdminUnlocked = false;
+        let isSubmissionsLocked = (localStorage.getItem('EXIUM_SUBMISSIONS_LOCKED') === 'true');
 
         // BANGLADESH STANDARD TIME (BDT / UTC+6) GENERATOR & FORMATTER
         function getBDTimestamp() {
@@ -773,6 +840,8 @@
                 // Auto sync from cloud silently on load
                 syncFromCloud(true);
             }
+
+            updateSubmissionLockUI();
 
             const session = JSON.parse(localStorage.getItem('EXIUM_AWARD_SESSION') || 'null');
             if (session && session.region && DB.regions_map[session.region]) {
@@ -1040,10 +1109,17 @@
                             <span>Selected: <strong>${chosenVoucher}</strong></span>
                             ${tsFormatted ? `<span class="text-[10px] font-medium text-emerald-700 font-mono ml-1">(${tsFormatted})</span>` : ''}
                         </span>
-                        <button onclick="removeVoucher('${ach.id}')" title="Remove / Clear this voucher choice" class="text-[11px] font-bold text-rose-700 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 px-2.5 py-1 rounded-xl transition flex items-center gap-1 shadow-sm">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            <span>✕ Remove Choice</span>
-                        </button>
+                        ${isSubmissionsLocked ? `
+                            <span class="text-[11px] font-bold text-slate-400 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl cursor-not-allowed flex items-center gap-1 shadow-2xs" title="Voucher selections are locked by administrator">
+                                <span>🔒</span>
+                                <span>Locked</span>
+                            </span>
+                        ` : `
+                            <button onclick="removeVoucher('${ach.id}')" title="Remove / Clear this voucher choice" class="text-[11px] font-bold text-rose-700 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 px-2.5 py-1 rounded-xl transition flex items-center gap-1 shadow-sm">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <span>✕ Remove Choice</span>
+                            </button>
+                        `}
                     </div>
                 `;
             } else {
@@ -1060,10 +1136,11 @@
 
             const brandsGrid = BRANDS.map(b => {
                 const isSelected = (chosenVoucher === b.name);
+                const clickTooltip = isSubmissionsLocked ? '🔒 Submissions are currently locked by Administrator' : (isSelected ? 'Click to Deselect / Remove Choice' : 'Click to Select ' + b.name);
                 return `
                     <div onclick="selectVoucher('${ach.id}', '${b.name}')" 
-                         title="${isSelected ? 'Click to Deselect / Remove Choice' : 'Click to Select ' + b.name}"
-                         class="brand-card cursor-pointer rounded-xl border-2 p-2 sm:p-2.5 flex flex-col justify-between relative transition-all ${
+                         title="${clickTooltip}"
+                         class="brand-card ${isSubmissionsLocked ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'} rounded-xl border-2 p-2 sm:p-2.5 flex flex-col justify-between relative transition-all ${
                              isSelected ? 'selected ring-2 ring-emerald-500 ring-offset-1 bg-white' : 'border-slate-200 hover:border-slate-300 bg-white'
                          }">
                         <div class="flex items-center justify-between mb-1">
@@ -1083,7 +1160,7 @@
                         ${isSelected ? `
                             <div class="mt-1 pt-1 border-t border-emerald-100 flex items-center justify-between text-[9px] text-emerald-800 font-black">
                                 <span>Selected</span>
-                                <span class="text-rose-600 hover:underline">✕ Deselect</span>
+                                ${isSubmissionsLocked ? '<span class="text-slate-400">🔒 Locked</span>' : '<span class="text-rose-600 hover:underline">✕ Deselect</span>'}
                             </div>
                         ` : ''}
                     </div>
@@ -1253,6 +1330,11 @@
         }
 
         function selectVoucher(achId, voucherName) {
+            if (isSubmissionsLocked) {
+                alert('🔒 Voucher choice submissions are currently CLOSED by Administrator. Portal is in Read-Only mode.');
+                return;
+            }
+
             // Toggle Deselect: If this voucher is already chosen, clicking again removes it
             if (savedChoices[achId] && savedChoices[achId].voucher === voucherName) {
                 removeVoucher(achId);
@@ -1275,6 +1357,11 @@
         }
 
         function removeVoucher(achId) {
+            if (isSubmissionsLocked) {
+                alert('🔒 Voucher choice submissions are currently CLOSED by Administrator. Portal is in Read-Only mode.');
+                return;
+            }
+
             if (!savedChoices[achId]) return;
 
             const oldVoucher = savedChoices[achId].voucher;
@@ -1364,6 +1451,11 @@
         }
 
         async function manualSaveSync() {
+            if (isSubmissionsLocked) {
+                alert('🔒 Voucher choice submissions are currently CLOSED by Administrator. Selections cannot be modified or saved.');
+                return;
+            }
+
             const btn = document.getElementById('btn-save-sync');
             btn.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Saving...</span>`;
 
@@ -1863,7 +1955,11 @@
         function showAdminDashboard() {
             document.getElementById('admin-auth-box').classList.add('hidden');
             document.getElementById('admin-dashboard-box').classList.remove('hidden');
+            updateSubmissionLockUI();
+            refreshAdminStats();
+        }
 
+        function refreshAdminStats() {
             const all = DB.achievers_may.concat(DB.achievers_jun);
             const total = all.length;
             let completed = 0;
@@ -1884,13 +1980,18 @@
                 }
             });
 
-            document.getElementById('admin-stat-total').textContent = total.toLocaleString();
-            document.getElementById('admin-stat-completed').textContent = completed.toLocaleString();
+            const elTotal = document.getElementById('admin-stat-total');
+            const elCompleted = document.getElementById('admin-stat-completed');
+            const elPct = document.getElementById('admin-stat-pct');
+            const elPending = document.getElementById('admin-stat-pending');
+            if (elTotal) elTotal.textContent = total.toLocaleString();
+            if (elCompleted) elCompleted.textContent = completed.toLocaleString();
             const pct = total > 0 ? ((completed / total) * 100).toFixed(1) : '0.0';
-            document.getElementById('admin-stat-pct').textContent = `${pct}%`;
-            document.getElementById('admin-stat-pending').textContent = (total - completed).toLocaleString();
+            if (elPct) elPct.textContent = `${pct}%`;
+            if (elPending) elPending.textContent = (total - completed).toLocaleString();
 
             const tbody = document.getElementById('admin-voucher-tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
             BRANDS.forEach(b => {
@@ -1909,6 +2010,181 @@
                 `;
                 tbody.appendChild(row);
             });
+        }
+
+        function updateSubmissionLockUI() {
+            const banner = document.getElementById('regview-locked-banner');
+            const badge = document.getElementById('admin-lock-badge');
+            const toggleBtn = document.getElementById('admin-toggle-lock-btn');
+
+            if (banner) {
+                if (isSubmissionsLocked) {
+                    banner.classList.remove('hidden');
+                } else {
+                    banner.classList.add('hidden');
+                }
+            }
+
+            if (badge) {
+                if (isSubmissionsLocked) {
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300';
+                    badge.textContent = '🔒 Input OFF (Locked / Read-Only)';
+                } else {
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300';
+                    badge.textContent = '🟢 Input ON (Active)';
+                }
+            }
+
+            if (toggleBtn) {
+                if (isSubmissionsLocked) {
+                    toggleBtn.className = 'w-full py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white';
+                    toggleBtn.innerHTML = '<span>🔓 Turn ON Input (Allow Submissions)</span>';
+                } else {
+                    toggleBtn.className = 'w-full py-2 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 shadow-xs bg-rose-600 hover:bg-rose-700 text-white';
+                    toggleBtn.innerHTML = '<span>🔒 Turn OFF Input (Lock Submissions)</span>';
+                }
+            }
+
+            if (currentRegionName) {
+                renderAchievers();
+            }
+        }
+
+        async function toggleSubmissionLock() {
+            const targetState = !isSubmissionsLocked;
+            const confirmMsg = targetState
+                ? 'Are you sure you want to Turn OFF Regional Head input?\n\nThis will LOCK voucher selection nationwide into Read-Only mode. Regional Heads will not be able to select or remove vouchers.'
+                : 'Are you sure you want to Turn ON Regional Head input?\n\nThis will UNLOCK the portal and ALLOW Regional Heads to select and submit voucher choices.';
+            
+            if (!confirm(confirmMsg)) return;
+
+            isSubmissionsLocked = targetState;
+            localStorage.setItem('EXIUM_SUBMISSIONS_LOCKED', isSubmissionsLocked ? 'true' : 'false');
+            updateSubmissionLockUI();
+            showToast(isSubmissionsLocked ? 'Input Locked (Read-Only)' : 'Input Unlocked (Active)', isSubmissionsLocked ? '🔒' : '🔓');
+
+            if (cloudEndpoint) {
+                try {
+                    const url = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'set_submission_lock',
+                            locked: isSubmissionsLocked
+                        })
+                    });
+                } catch (e) {
+                    console.warn('Could not sync lock state to cloud:', e);
+                }
+            }
+        }
+
+        async function adminDeleteAllNationalData() {
+            const confirm1 = confirm('⚠️ CAUTION: Are you sure you want to DELETE ALL voucher choices nationwide?\n\nThis will reset ALL 1,023 MIO awards back to "Pending". This action cannot be undone.');
+            if (!confirm1) return;
+
+            const typed = prompt('To confirm permanent deletion, type "DELETE" in capital letters:');
+            if (typed !== 'DELETE') {
+                alert('Deletion cancelled. You must type "DELETE" exactly.');
+                return;
+            }
+
+            savedChoices = {};
+            localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
+
+            if (currentRegionName) {
+                renderAchievers();
+                updateRegionProgress();
+            }
+            if (currentActiveZoneCode) {
+                renderZonalDashboardData(currentActiveZoneCode);
+            }
+            refreshAdminStats();
+
+            showToast('Resetting all national data...', '⏳');
+
+            if (cloudEndpoint) {
+                try {
+                    const url = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'delete_all_data'
+                        })
+                    });
+                    showToast('All National Data Cleared on Sheet & Portal!', '🗑️');
+                } catch (err) {
+                    console.error('Delete error:', err);
+                    showToast('Local reset done. Could not reach cloud sheet.', '⚠️');
+                }
+            } else {
+                showToast('All Local Choices Cleared! (No cloud endpoint set)', '🗑️');
+            }
+        }
+
+        async function adminDeleteCurrentRegionData() {
+            let targetRegion = currentRegionName;
+            if (!targetRegion) {
+                const input = prompt('Enter the exact Region Name to reset (e.g. Dhaka South, Sylhet, etc.):');
+                if (!input) return;
+                targetRegion = input.trim();
+            }
+
+            if (!DB.regions_map[targetRegion]) {
+                alert(`Region "${targetRegion}" not found! Please check spelling.`);
+                return;
+            }
+
+            const regMay = DB.achievers_may.filter(a => a.region === targetRegion);
+            const regJun = DB.achievers_jun.filter(a => a.region === targetRegion);
+            const totalInReg = regMay.length + regJun.length;
+
+            const confirm1 = confirm(`Are you sure you want to delete and reset all voucher choices for Region: "${targetRegion}" (${totalInReg} awards)?\n\nThis will reset them back to Pending.`);
+            if (!confirm1) return;
+
+            // Clear choices for this region
+            [...regMay, ...regJun].forEach(a => {
+                if (savedChoices[a.id]) {
+                    delete savedChoices[a.id];
+                }
+            });
+            localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
+
+            if (currentRegionName === targetRegion) {
+                renderAchievers();
+                updateRegionProgress();
+            }
+            if (currentActiveZoneCode) {
+                renderZonalDashboardData(currentActiveZoneCode);
+            }
+            refreshAdminStats();
+
+            showToast(`Resetting Region ${targetRegion}...`, '⏳');
+
+            if (cloudEndpoint) {
+                try {
+                    const url = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    await fetch(url, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'delete_region_data',
+                            region_name: targetRegion
+                        })
+                    });
+                    showToast(`Region "${targetRegion}" Data Cleared on Sheet!`, '🗑️');
+                } catch (err) {
+                    console.error('Delete region error:', err);
+                    showToast('Region choices reset locally.', 'ℹ️');
+                }
+            } else {
+                showToast(`Region "${targetRegion}" choices cleared locally!`, '🗑️');
+            }
         }
 
         let isSyncing = false;
@@ -1930,6 +2206,15 @@
                 const json = await res.json();
 
                 if (json && json.status === 'success' && json.data) {
+                    if (json.submissions_locked !== undefined) {
+                        const cloudLocked = (json.submissions_locked === true || json.submissions_locked === 'true');
+                        if (isSubmissionsLocked !== cloudLocked) {
+                            isSubmissionsLocked = cloudLocked;
+                            localStorage.setItem('EXIUM_SUBMISSIONS_LOCKED', isSubmissionsLocked ? 'true' : 'false');
+                            updateSubmissionLockUI();
+                        }
+                    }
+
                     const mayData = json.data.May_2026 || {};
                     const junData = json.data.June_2026 || {};
                     let appliedCount = 0;
@@ -1959,6 +2244,11 @@
                                     };
                                     appliedCount++;
                                 }
+                            } else {
+                                if (prevVoucher !== '' || prevTime !== '') {
+                                    delete savedChoices[a.id];
+                                    appliedCount++;
+                                }
                             }
                         }
                     });
@@ -1986,6 +2276,11 @@
                                         timestamp: item.timestamp,
                                         status: 'Pending'
                                     };
+                                    appliedCount++;
+                                }
+                            } else {
+                                if (prevVoucher !== '' || prevTime !== '') {
+                                    delete savedChoices[a.id];
                                     appliedCount++;
                                 }
                             }

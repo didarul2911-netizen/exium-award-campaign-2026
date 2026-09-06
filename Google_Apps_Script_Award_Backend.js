@@ -33,6 +33,9 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
+  var props = PropertiesService.getScriptProperties();
+  var isLocked = (props.getProperty("SUBMISSIONS_LOCKED") === "true");
+
   if (action === "fetch_data") {
     var month = p.month || "all";
     var result = {};
@@ -45,6 +48,7 @@ function doGet(e) {
     var jsonStr = JSON.stringify({
       status: "success",
       data: result,
+      submissions_locked: isLocked,
       timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
     });
     if (p.callback) {
@@ -59,6 +63,7 @@ function doGet(e) {
     status: "ok",
     message: "Exium Award Choice Backend is Active",
     summary: summary,
+    submissions_locked: isLocked,
     timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
   })).setMimeType(ContentService.MimeType.JSON);
 }
@@ -200,6 +205,85 @@ function doPost(e) {
         status: "success",
         updated: updatedCount,
         message: updatedCount + " choice(s) saved successfully.",
+        timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Toggle Input Submission Lock for Regional Heads
+    if (action === "set_submission_lock") {
+      var lockStatus = !!payload.locked;
+      PropertiesService.getScriptProperties().setProperty("SUBMISSIONS_LOCKED", lockStatus ? "true" : "false");
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        submissions_locked: lockStatus,
+        message: lockStatus ? "Voucher submissions have been locked (Read-Only Mode)." : "Voucher submissions are now active and open.",
+        timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Delete All Voucher Choices Nationwide (Admin Reset)
+    if (action === "delete_all_data") {
+      var sheetsToReset = ["Award_May_2026", "Award_June_2026"];
+      var totalReset = 0;
+      for (var s = 0; s < sheetsToReset.length; s++) {
+        var sh = ss.getSheetByName(sheetsToReset[s]);
+        if (!sh) continue;
+        var lr = sh.getLastRow();
+        if (lr < 2) continue;
+        var isJun = (sheetsToReset[s] === "Award_June_2026");
+        var vCol = isJun ? 17 : 15;
+        var tCol = isJun ? 18 : 16;
+        var stCol = isJun ? 19 : 17;
+
+        for (var r = 2; r <= lr; r++) {
+          sh.getRange(r, vCol).setValue("");
+          sh.getRange(r, tCol).setValue("");
+          sh.getRange(r, stCol).setValue("Pending");
+          sh.getRange(r, vCol, 1, 3).setBackground(null);
+          totalReset++;
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "All national voucher choice data cleared successfully (" + totalReset + " records reset).",
+        timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Delete Voucher Choices for a Specific Region
+    if (action === "delete_region_data") {
+      var targetRegion = String(payload.region || "").trim();
+      if (!targetRegion) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "No region specified." })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var sheetsToReset = ["Award_May_2026", "Award_June_2026"];
+      var regReset = 0;
+      for (var s = 0; s < sheetsToReset.length; s++) {
+        var sh = ss.getSheetByName(sheetsToReset[s]);
+        if (!sh) continue;
+        var lr = sh.getLastRow();
+        if (lr < 2) continue;
+        var isJun = (sheetsToReset[s] === "Award_June_2026");
+        var vCol = isJun ? 17 : 15;
+        var tCol = isJun ? 18 : 16;
+        var stCol = isJun ? 19 : 17;
+        var regCol = 4; // Region Name is Column 4
+
+        var regValues = sh.getRange(2, regCol, lr - 1, 1).getValues();
+        for (var r = 0; r < regValues.length; r++) {
+          if (String(regValues[r][0] || "").trim() === targetRegion) {
+            var rowNum = r + 2;
+            sh.getRange(rowNum, vCol).setValue("");
+            sh.getRange(rowNum, tCol).setValue("");
+            sh.getRange(rowNum, stCol).setValue("Pending");
+            sh.getRange(rowNum, vCol, 1, 3).setBackground(null);
+            regReset++;
+          }
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Data for " + targetRegion + " cleared successfully (" + regReset + " records reset).",
         timestamp: Utilities.formatDate(new Date(), "Asia/Dhaka", "dd-MMM-yyyy hh:mm:ss a")
       })).setMimeType(ContentService.MimeType.JSON);
     }
@@ -412,11 +496,54 @@ function fixAllSheetsFormattingAndTimestamps(ss) {
   return "Fixed May Ach% (" + countMay + " rows), June Growth% (" + countJun + " rows), and timestamps to BD Time.";
 }
 
+function lockSubmissionsMenu() {
+  PropertiesService.getScriptProperties().setProperty("SUBMISSIONS_LOCKED", "true");
+  SpreadsheetApp.getUi().alert("🔒 Submissions Locked", "Voucher choice submission has been locked for all Regional Heads. Portal is now in Read-Only mode.", SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+function unlockSubmissionsMenu() {
+  PropertiesService.getScriptProperties().setProperty("SUBMISSIONS_LOCKED", "false");
+  SpreadsheetApp.getUi().alert("🔓 Submissions Unlocked", "Voucher choice submission is now OPEN and ACTIVE for all Regional Heads.", SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+function clearAllChoicesMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var resp = ui.alert("⚠️ Confirm Data Reset", "Are you sure you want to CLEAR ALL voucher choice selections for May & June? All rows will be reset to Pending.", ui.ButtonSet.YES_NO);
+  if (resp === ui.Button.YES) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheets = ["Award_May_2026", "Award_June_2026"];
+    var resetCount = 0;
+    for (var s = 0; s < sheets.length; s++) {
+      var sh = ss.getSheetByName(sheets[s]);
+      if (!sh) continue;
+      var lr = sh.getLastRow();
+      if (lr < 2) continue;
+      var isJun = (sheets[s] === "Award_June_2026");
+      var vCol = isJun ? 17 : 15;
+      var tCol = isJun ? 18 : 16;
+      var stCol = isJun ? 19 : 17;
+      for (var r = 2; r <= lr; r++) {
+        sh.getRange(r, vCol).setValue("");
+        sh.getRange(r, tCol).setValue("");
+        sh.getRange(r, stCol).setValue("Pending");
+        sh.getRange(r, vCol, 1, 3).setBackground(null);
+        resetCount++;
+      }
+    }
+    ui.alert("✅ Data Cleared", resetCount + " records reset to Pending.", ui.ButtonSet.OK);
+  }
+}
+
 function onOpen() {
   try {
     SpreadsheetApp.getUi()
       .createMenu("Exium Tools")
       .addItem("🛠️ Fix May Ach% & BD Timestamps", "fixAllSheetsFormattingAndTimestamps")
+      .addSeparator()
+      .addItem("🔒 Lock Regional Head Inputs (Read-Only)", "lockSubmissionsMenu")
+      .addItem("🔓 Unlock Regional Head Inputs (Active)", "unlockSubmissionsMenu")
+      .addSeparator()
+      .addItem("🗑️ Clear All Voucher Choices (Reset All)", "clearAllChoicesMenu")
       .addToUi();
   } catch (err) {}
 }
