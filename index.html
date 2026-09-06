@@ -119,17 +119,17 @@
                     <p class="text-xs sm:text-sm text-slate-500">Select your Zone and Region to assign award catalogue vouchers</p>
                 </div>
 
-                <!-- Tabs: Regional Login, MIO Search -->
+                <!-- Tabs: Regional Head Login, MIO Search -->
                 <div class="flex border-b border-slate-200 mb-5 text-xs font-bold text-slate-500">
                     <button id="tab-reg" onclick="switchLoginTab('regional')" class="flex-1 py-2.5 text-center border-b-2 border-orange-500 text-orange-600 font-black">
-                        Regional Login
+                        Regional Head Login
                     </button>
                     <button id="tab-mio" onclick="switchLoginTab('mio')" class="flex-1 py-2.5 text-center border-b-2 border-transparent hover:text-slate-800">
                         MIO Search
                     </button>
                 </div>
 
-                <!-- 1. Regional Login Form -->
+                <!-- 1. Regional Head Login Form -->
                 <form id="form-regional" onsubmit="handleRegionalLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -865,7 +865,7 @@
             const expectedSap = String(r.sap_region_code).trim();
 
             if (pass !== expectedSap) {
-                alert('Invalid Region Password! Regional login strictly requires the SAP Region Code (' + expectedSap + ').');
+                alert('Invalid Region Password! Regional Head login strictly requires the SAP Region Code (' + expectedSap + ').');
                 return;
             }
 
