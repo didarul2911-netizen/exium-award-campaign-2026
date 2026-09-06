@@ -829,17 +829,41 @@
         function getBDTimestamp() {
             try {
                 const d = new Date();
-                const bdMs = d.getTime() + (d.getTimezoneOffset() * 60000) + (6 * 3600000);
-                const bd = new Date(bdMs);
-                const pad = n => String(n).padStart(2, '0');
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                let h = bd.getUTCHours();
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                h = h % 12 || 12;
-                return `${pad(bd.getUTCDate())}-${months[bd.getUTCMonth()]}-${bd.getUTCFullYear()} ${pad(h)}:${pad(bd.getUTCMinutes())}:${pad(bd.getUTCSeconds())} ${ampm}`;
-            } catch (e) {
-                return new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' });
-            }
+                const parts = new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Asia/Dhaka',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }).formatToParts(d);
+
+                let day = '', month = '', year = '', hour = '', min = '', sec = '', dayPeriod = '';
+                for (const p of parts) {
+                    if (p.type === 'day') day = p.value;
+                    else if (p.type === 'month') month = p.value;
+                    else if (p.type === 'year') year = p.value;
+                    else if (p.type === 'hour') hour = p.value;
+                    else if (p.type === 'minute') min = p.value;
+                    else if (p.type === 'second') sec = p.value;
+                    else if (p.type === 'dayPeriod') dayPeriod = p.value.replace(/\./g, '').toUpperCase();
+                }
+                if (day && month && year && hour && min && sec && dayPeriod) {
+                    return `${day}-${month}-${year} ${hour}:${min}:${sec} ${dayPeriod}`;
+                }
+            } catch (e) {}
+
+            // Deterministic UTC+6 fallback: Shift UTC epoch by exactly +6 hours
+            const d = new Date();
+            const bdDate = new Date(d.getTime() + (6 * 60 * 60 * 1000));
+            const pad = n => String(n).padStart(2, '0');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            let h = bdDate.getUTCHours();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${pad(bdDate.getUTCDate())}-${months[bdDate.getUTCMonth()]}-${bdDate.getUTCFullYear()} ${pad(h)}:${pad(bdDate.getUTCMinutes())}:${pad(bdDate.getUTCSeconds())} ${ampm}`;
         }
 
         function formatToBDTime(isoOrStr) {
@@ -851,14 +875,39 @@
             try {
                 const d = new Date(trimmed);
                 if (isNaN(d.getTime())) return trimmed;
-                const bdMs = d.getTime() + (d.getTimezoneOffset() * 60000) + (6 * 3600000);
-                const bd = new Date(bdMs);
+                try {
+                    const parts = new Intl.DateTimeFormat('en-GB', {
+                        timeZone: 'Asia/Dhaka',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    }).formatToParts(d);
+                    let day = '', month = '', year = '', hour = '', min = '', sec = '', dayPeriod = '';
+                    for (const p of parts) {
+                        if (p.type === 'day') day = p.value;
+                        else if (p.type === 'month') month = p.value;
+                        else if (p.type === 'year') year = p.value;
+                        else if (p.type === 'hour') hour = p.value;
+                        else if (p.type === 'minute') min = p.value;
+                        else if (p.type === 'second') sec = p.value;
+                        else if (p.type === 'dayPeriod') dayPeriod = p.value.replace(/\./g, '').toUpperCase();
+                    }
+                    if (day && month && year && hour && min && sec && dayPeriod) {
+                        return `${day}-${month}-${year} ${hour}:${min}:${sec} ${dayPeriod}`;
+                    }
+                } catch (e) {}
+
+                const bdDate = new Date(d.getTime() + (6 * 60 * 60 * 1000));
                 const pad = n => String(n).padStart(2, '0');
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                let h = bd.getUTCHours();
+                let h = bdDate.getUTCHours();
                 const ampm = h >= 12 ? 'PM' : 'AM';
                 h = h % 12 || 12;
-                return `${pad(bd.getUTCDate())}-${months[bd.getUTCMonth()]}-${bd.getUTCFullYear()} ${pad(h)}:${pad(bd.getUTCMinutes())}:${pad(bd.getUTCSeconds())} ${ampm}`;
+                return `${pad(bdDate.getUTCDate())}-${months[bdDate.getUTCMonth()]}-${bdDate.getUTCFullYear()} ${pad(h)}:${pad(bdDate.getUTCMinutes())}:${pad(bdDate.getUTCSeconds())} ${ampm}`;
             } catch (e) {
                 return trimmed;
             }
@@ -1523,7 +1572,7 @@
                 if (elMob) elMob.textContent = 'Syncing';
                 if (dotMob) dotMob.className = 'w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping';
             } else if (state === 'synced') {
-                const timeStr = detail || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const timeStr = detail || new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 if (elDesk) elDesk.textContent = `Live: ${timeStr}`;
                 if (dotDesk) dotDesk.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
                 if (iconDesk) iconDesk.classList.remove('animate-spin');

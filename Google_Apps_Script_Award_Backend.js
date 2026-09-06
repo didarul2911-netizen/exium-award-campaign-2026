@@ -330,7 +330,8 @@ function getSheetChoices(ss, sheetName) {
     var mc = String(mioVals[i][0] || "").trim();
     var v = String(voucherVals[i][0] || "").trim();
     var s = String(statusVals[i][0] || "").trim();
-    var t = String(timeVals[i][0] || "").trim();
+    var rawT = timeVals[i][0];
+    var t = rawT ? toBangladeshTimeString(rawT) : "";
 
     if (ac && (v || t)) {
       var key = ac + "_" + mc;
