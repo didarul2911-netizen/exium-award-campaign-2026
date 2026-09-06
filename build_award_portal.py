@@ -478,7 +478,7 @@ def generate_html_portal(json_db_str):
                 </div>
 
                 <!-- 1. Regional Head Login Form -->
-                <form id="form-regional" onsubmit="handleRegionalLogin(event)" class="space-y-4">
+                <form id="form-regional" autocomplete="off" onsubmit="handleRegionalLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                             1. Select Zone
@@ -516,7 +516,7 @@ def generate_html_portal(json_db_str):
                             </label>
                             <span class="text-[10px] text-orange-600 font-black bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">SAP Region Code</span>
                         </div>
-                        <input type="password" id="reg-password-input" placeholder="Enter SAP Region Code" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none">
+                        <input type="password" id="reg-password-input" autocomplete="new-password" placeholder="Enter SAP Region Code" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none">
                     </div>
 
                     <button type="submit" class="w-full py-3 px-4 rounded-xl font-black text-sm text-white bg-slate-900 hover:bg-slate-800 shadow-md transition transform active:scale-[0.99] flex items-center justify-center gap-2">
@@ -849,7 +849,7 @@ def generate_html_portal(json_db_str):
                 </button>
             </div>
 
-            <form id="form-zonal" onsubmit="handleZonalLogin(event)" class="p-5 sm:p-6 space-y-4">
+            <form id="form-zonal" autocomplete="off" onsubmit="handleZonalLogin(event)" class="p-5 sm:p-6 space-y-4">
                 <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 text-xs text-orange-900 font-medium">
                     Zonal Heads can login with their <strong>SAP Zone Code</strong> to inspect zone-wide award selections and completion rates.
                 </div>
@@ -875,7 +875,7 @@ def generate_html_portal(json_db_str):
                         </label>
                         <span class="text-[10px] text-orange-600 font-black bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">SAP Zone Code</span>
                     </div>
-                    <input type="password" id="zonal-password-input" placeholder="Enter SAP Zone Code" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none">
+                    <input type="password" id="zonal-password-input" autocomplete="new-password" placeholder="Enter SAP Zone Code" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-orange-500 outline-none">
                 </div>
 
                 <button type="submit" class="w-full py-3 px-4 rounded-xl font-black text-sm text-white bg-slate-900 hover:bg-slate-800 shadow-md transition transform active:scale-[0.99] flex items-center justify-center gap-2">
@@ -917,7 +917,7 @@ def generate_html_portal(json_db_str):
                     <h4 class="font-black text-sm text-slate-900">Admin Authentication</h4>
                     <p class="text-xs text-slate-500">Enter master password to access national summary</p>
                     <div class="flex gap-2">
-                        <input type="password" id="admin-password-input" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="Enter Admin Password..." class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-orange-500">
+                        <input type="password" id="admin-password-input" autocomplete="new-password" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="Enter Admin Password..." class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-orange-500">
                         <button onclick="verifyAdminPassword()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition">
                             Unlock
                         </button>
@@ -1265,6 +1265,18 @@ def generate_html_portal(json_db_str):
             }}
             initLoginDropdowns();
 
+            // Clear password inputs on load to strictly defeat aggressive browser autofill
+            const clearAuthPasswords = () => {{
+                ['reg-password-input', 'zonal-password-input', 'admin-password-input'].forEach(id => {{
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                }});
+            }};
+            clearAuthPasswords();
+            setTimeout(clearAuthPasswords, 100);
+            setTimeout(clearAuthPasswords, 300);
+            setTimeout(clearAuthPasswords, 600);
+
             // Clean visible URL query string if ?api= was supplied, keeping address bar clean
             if (queryEndpoint && window.history && window.history.replaceState) {{
                 try {{
@@ -1361,6 +1373,8 @@ def generate_html_portal(json_db_str):
         }}
 
         function onRegionalZoneChange() {{
+            const passInput = document.getElementById('reg-password-input');
+            if (passInput) passInput.value = '';
             const zoneCode = document.getElementById('reg-zone-select').value;
             const regSel = document.getElementById('reg-region-select');
             regSel.innerHTML = '<option value="">-- Select Region --</option>';
@@ -1388,6 +1402,8 @@ def generate_html_portal(json_db_str):
         }}
 
         function onRegionalRegionChange() {{
+            const passInput = document.getElementById('reg-password-input');
+            if (passInput) passInput.value = '';
             const regName = document.getElementById('reg-region-select').value;
             const box = document.getElementById('reg-details-box');
             if (!regName || !DB.regions_map[regName]) {{
@@ -1458,6 +1474,8 @@ def generate_html_portal(json_db_str):
             document.getElementById('login-view').classList.remove('hidden');
             currentRegionName = '';
             currentActiveZoneCode = '';
+            const passInput = document.getElementById('reg-password-input');
+            if (passInput) passInput.value = '';
         }}
 
         // GROUP ACHIEVERS IN REGION BY MIO PERSON
@@ -2102,6 +2120,8 @@ def generate_html_portal(json_db_str):
         }}
 
         function onZonalZoneChange() {{
+            const passInput = document.getElementById('zonal-password-input');
+            if (passInput) passInput.value = '';
             const zoneCode = document.getElementById('zone-login-select').value;
             const box = document.getElementById('zone-details-box');
             if (!zoneCode) {{
@@ -2475,6 +2495,8 @@ def generate_html_portal(json_db_str):
         }}
 
         function openZonalModal() {{
+            const passInput = document.getElementById('zonal-password-input');
+            if (passInput) passInput.value = '';
             document.getElementById('zonal-modal').classList.remove('hidden');
         }}
 
@@ -2483,6 +2505,8 @@ def generate_html_portal(json_db_str):
         }}
 
         function openAdminModal() {{
+            const passInput = document.getElementById('admin-password-input');
+            if (passInput) passInput.value = '';
             document.getElementById('admin-modal').classList.remove('hidden');
             if (isAdminUnlocked) {{
                 showAdminDashboard();
