@@ -2645,6 +2645,63 @@ def generate_html_portal(json_db_str):
                 return;
             }}
 
+            showToast('Resetting all national data...', '⏳');
+
+            // 1. Gather all achievers that currently have choices in local storage OR cloud
+            const allAchievers = DB.achievers_may.concat(DB.achievers_jun);
+            const toRemoveList = [];
+
+            // Add all items in current local choices
+            Object.keys(savedChoices).forEach(achId => {{
+                const a = allAchievers.find(x => x.id === achId);
+                if (a) {{
+                    toRemoveList.push({{
+                        id: a.id,
+                        month: a.month,
+                        area_code: a.area_code,
+                        mio_code: a.mio_code,
+                        voucher: '',
+                        timestamp: '',
+                        action: 'remove'
+                    }});
+                }}
+            }});
+
+            // Also inspect cloud data to include any choices submitted by other devices
+            if (cloudEndpoint) {{
+                try {{
+                    const fetchUrl = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 'action=fetch_data&t=' + Date.now();
+                    const fetchRes = await fetch(fetchUrl);
+                    if (fetchRes.ok) {{
+                        const cloudJson = await fetchRes.json();
+                        if (cloudJson && cloudJson.data) {{
+                            const scanCloud = (dict, mKey) => {{
+                                const list = (mKey === 'May_2026') ? DB.achievers_may : DB.achievers_jun;
+                                list.forEach(a => {{
+                                    const key = a.area_code + '_' + a.mio_code;
+                                    if (dict[key] && (dict[key].voucher || dict[key].timestamp)) {{
+                                        if (!toRemoveList.some(x => x.id === a.id)) {{
+                                            toRemoveList.push({{
+                                                id: a.id,
+                                                month: a.month,
+                                                area_code: a.area_code,
+                                                mio_code: a.mio_code,
+                                                voucher: '',
+                                                timestamp: '',
+                                                action: 'remove'
+                                            }});
+                                        }}
+                                    }}
+                                }});
+                            }};
+                            scanCloud(cloudJson.data.May_2026 || {{}}, 'May_2026');
+                            scanCloud(cloudJson.data.June_2026 || {{}}, 'June_2026');
+                        }}
+                    }}
+                }} catch (e) {{}}
+            }}
+
+            // 2. Clear local storage, memory, and pending outbox queue
             savedChoices = {{}};
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
             savePendingQueue({{}});
@@ -2658,24 +2715,42 @@ def generate_html_portal(json_db_str):
             }}
             refreshAdminStats();
 
-            showToast('Resetting all national data...', '⏳');
-
+            // 3. Delete in Google Sheet: Multi-Method Redundancy
             if (cloudEndpoint) {{
+                // Method A: Native delete_all_data action
                 try {{
-                    const url = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 't=' + Date.now();
-                    await fetch(url, {{
+                    await fetch(cloudEndpoint, {{
                         method: 'POST',
-                        mode: 'no-cors',
                         headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
-                        body: JSON.stringify({{
-                            action: 'delete_all_data'
-                        }})
+                        body: JSON.stringify({{ action: 'delete_all_data' }})
                     }});
-                    showToast('All National Data Cleared on Sheet & Portal!', '🗑️');
-                }} catch (err) {{
-                    console.error('Delete error:', err);
-                    showToast('Local reset done. Could not reach cloud sheet.', '⚠️');
+                }} catch (e) {{}}
+
+                // Method B: Universal batch removal via 'save_choices' (Works on ALL Apps Script versions!)
+                if (toRemoveList.length > 0) {{
+                    const batchPayload = JSON.stringify({{
+                        action: 'save_choices',
+                        choices: toRemoveList
+                    }});
+                    try {{
+                        await fetch(cloudEndpoint, {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                            body: batchPayload
+                        }});
+                    }} catch (e) {{
+                        try {{
+                            await fetch(cloudEndpoint, {{
+                                method: 'POST',
+                                mode: 'no-cors',
+                                headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                                body: batchPayload
+                            }});
+                        }} catch (err2) {{}}
+                    }}
                 }}
+
+                showToast('All National Data Cleared on Sheet & Portal!', '🗑️');
             }} else {{
                 showToast('All Local Choices Cleared! (No cloud endpoint set)', '🗑️');
             }}
@@ -2701,16 +2776,61 @@ def generate_html_portal(json_db_str):
             const confirm1 = confirm(`Are you sure you want to delete and reset all voucher choices for Region: "${{targetRegion}}" (${{totalInReg}} awards)?\\n\\nThis will reset them back to Pending.`);
             if (!confirm1) return;
 
-            // Clear choices for this region from local choices and pending queue
+            showToast(`Resetting Region ${{targetRegion}}...`, '⏳');
+
+            // 1. Gather all achievers in this region to remove
+            const allRegAchievers = regMay.concat(regJun);
+            const toRemoveList = [];
             const curQ = getPendingQueue();
-            [...regMay, ...regJun].forEach(a => {{
+
+            allRegAchievers.forEach(a => {{
                 if (savedChoices[a.id]) {{
+                    toRemoveList.push({{
+                        id: a.id,
+                        month: a.month,
+                        area_code: a.area_code,
+                        mio_code: a.mio_code,
+                        voucher: '',
+                        timestamp: '',
+                        action: 'remove'
+                    }});
                     delete savedChoices[a.id];
                 }}
                 if (curQ[a.id]) {{
                     delete curQ[a.id];
                 }}
             }});
+
+            // Also check cloud to find any choices in this region submitted from other devices
+            if (cloudEndpoint) {{
+                try {{
+                    const fetchUrl = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 'action=fetch_data&t=' + Date.now();
+                    const fetchRes = await fetch(fetchUrl);
+                    if (fetchRes.ok) {{
+                        const cloudJson = await fetchRes.json();
+                        if (cloudJson && cloudJson.data) {{
+                            allRegAchievers.forEach(a => {{
+                                const mDict = (a.month === 'May_2026') ? (cloudJson.data.May_2026 || {{}}) : (cloudJson.data.June_2026 || {{}});
+                                const key = a.area_code + '_' + a.mio_code;
+                                if (mDict[key] && (mDict[key].voucher || mDict[key].timestamp)) {{
+                                    if (!toRemoveList.some(x => x.id === a.id)) {{
+                                        toRemoveList.push({{
+                                            id: a.id,
+                                            month: a.month,
+                                            area_code: a.area_code,
+                                            mio_code: a.mio_code,
+                                            voucher: '',
+                                            timestamp: '',
+                                            action: 'remove'
+                                        }});
+                                    }}
+                                }}
+                            }});
+                        }}
+                    }}
+                }} catch (e) {{}}
+            }}
+
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
             savePendingQueue(curQ);
 
@@ -2723,25 +2843,46 @@ def generate_html_portal(json_db_str):
             }}
             refreshAdminStats();
 
-            showToast(`Resetting Region ${{targetRegion}}...`, '⏳');
-
+            // 2. Delete in Google Sheet: Multi-Method Redundancy
             if (cloudEndpoint) {{
+                // Method A: Native delete_region_data action (support both region and region_name)
                 try {{
-                    const url = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 't=' + Date.now();
-                    await fetch(url, {{
+                    await fetch(cloudEndpoint, {{
                         method: 'POST',
-                        mode: 'no-cors',
                         headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
                         body: JSON.stringify({{
                             action: 'delete_region_data',
+                            region: targetRegion,
                             region_name: targetRegion
                         }})
                     }});
-                    showToast(`Region "${{targetRegion}}" Data Cleared on Sheet!`, '🗑️');
-                }} catch (err) {{
-                    console.error('Delete region error:', err);
-                    showToast('Region choices reset locally.', 'ℹ️');
+                }} catch (e) {{}}
+
+                // Method B: Universal batch removal via 'save_choices' (Works on ALL Apps Script versions!)
+                if (toRemoveList.length > 0) {{
+                    const batchPayload = JSON.stringify({{
+                        action: 'save_choices',
+                        choices: toRemoveList
+                    }});
+                    try {{
+                        await fetch(cloudEndpoint, {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                            body: batchPayload
+                        }});
+                    }} catch (e) {{
+                        try {{
+                            await fetch(cloudEndpoint, {{
+                                method: 'POST',
+                                mode: 'no-cors',
+                                headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                                body: batchPayload
+                            }});
+                        }} catch (err2) {{}}
+                    }}
                 }}
+
+                showToast(`Region "${{targetRegion}}" Data Cleared on Sheet & Portal!`, '🗑️');
             }} else {{
                 showToast(`Region "${{targetRegion}}" choices cleared locally!`, '🗑️');
             }}

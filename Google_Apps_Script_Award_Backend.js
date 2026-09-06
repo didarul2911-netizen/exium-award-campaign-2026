@@ -222,7 +222,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Delete All Voucher Choices Nationwide (Admin Reset)
+    // Delete All Voucher Choices Nationwide (Admin Reset - Fast Batch Mode)
     if (action === "delete_all_data") {
       var sheetsToReset = ["Award_May_2026", "Award_June_2026"];
       var totalReset = 0;
@@ -233,16 +233,16 @@ function doPost(e) {
         if (lr < 2) continue;
         var isJun = (sheetsToReset[s] === "Award_June_2026");
         var vCol = isJun ? 17 : 15;
-        var tCol = isJun ? 18 : 16;
-        var stCol = isJun ? 19 : 17;
+        var numRows = lr - 1;
 
-        for (var r = 2; r <= lr; r++) {
-          sh.getRange(r, vCol).setValue("");
-          sh.getRange(r, tCol).setValue("");
-          sh.getRange(r, stCol).setValue("Pending");
-          sh.getRange(r, vCol, 1, 3).setBackground(null);
-          totalReset++;
+        var emptyBatch = [];
+        for (var i = 0; i < numRows; i++) {
+          emptyBatch.push(["", "", "Pending"]);
         }
+        var targetRange = sh.getRange(2, vCol, numRows, 3);
+        targetRange.setValues(emptyBatch);
+        targetRange.setBackground(null);
+        totalReset += numRows;
       }
       SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({
@@ -252,9 +252,9 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Delete Voucher Choices for a Specific Region
+    // Delete Voucher Choices for a Specific Region (Fast Batch Mode)
     if (action === "delete_region_data") {
-      var targetRegion = String(payload.region || "").trim();
+      var targetRegion = String(payload.region || payload.region_name || "").trim();
       if (!targetRegion) {
         return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "No region specified." })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -267,20 +267,31 @@ function doPost(e) {
         if (lr < 2) continue;
         var isJun = (sheetsToReset[s] === "Award_June_2026");
         var vCol = isJun ? 17 : 15;
-        var tCol = isJun ? 18 : 16;
-        var stCol = isJun ? 19 : 17;
         var regCol = 4; // Region Name is Column 4
+        var numRows = lr - 1;
 
-        var regValues = sh.getRange(2, regCol, lr - 1, 1).getValues();
+        var regValues = sh.getRange(2, regCol, numRows, 1).getValues();
+        var choiceRange = sh.getRange(2, vCol, numRows, 3);
+        var choiceVals = choiceRange.getValues();
+        var bgVals = choiceRange.getBackgrounds();
+        var changed = false;
+
         for (var r = 0; r < regValues.length; r++) {
-          if (String(regValues[r][0] || "").trim() === targetRegion) {
-            var rowNum = r + 2;
-            sh.getRange(rowNum, vCol).setValue("");
-            sh.getRange(rowNum, tCol).setValue("");
-            sh.getRange(rowNum, stCol).setValue("Pending");
-            sh.getRange(rowNum, vCol, 1, 3).setBackground(null);
+          var rowReg = String(regValues[r][0] || "").trim();
+          if (rowReg.toLowerCase() === targetRegion.toLowerCase()) {
+            choiceVals[r][0] = "";
+            choiceVals[r][1] = "";
+            choiceVals[r][2] = "Pending";
+            bgVals[r][0] = null;
+            bgVals[r][1] = null;
+            bgVals[r][2] = null;
             regReset++;
+            changed = true;
           }
+        }
+        if (changed) {
+          choiceRange.setValues(choiceVals);
+          choiceRange.setBackgrounds(bgVals);
         }
       }
       SpreadsheetApp.flush();
