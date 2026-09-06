@@ -201,6 +201,7 @@ function doPost(e) {
         }
       }
 
+      SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
         updated: updatedCount,
@@ -243,6 +244,7 @@ function doPost(e) {
           totalReset++;
         }
       }
+      SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
         message: "All national voucher choice data cleared successfully (" + totalReset + " records reset).",
@@ -281,6 +283,7 @@ function doPost(e) {
           }
         }
       }
+      SpreadsheetApp.flush();
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
         message: "Data for " + targetRegion + " cleared successfully (" + regReset + " records reset).",

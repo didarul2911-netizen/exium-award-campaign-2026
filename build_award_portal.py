@@ -405,7 +405,8 @@ def generate_html_portal(json_db_str):
 
                     <!-- Desktop Buttons -->
                     <div class="hidden sm:flex items-center gap-2">
-                        <button onclick="syncFromCloud(false)" id="btn-cloud-sync" title="Sync live selections with Google Sheets" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition flex items-center gap-1.5 shadow-xs">
+                        <button onclick="onHeaderCloudSyncClick()" id="btn-cloud-sync" title="Live Google Sheets Real-Time Sync" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition flex items-center gap-1.5 shadow-xs">
+                            <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             <svg id="sync-icon-desktop" class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                             <span id="header-sync-status">Live Sync</span>
                         </button>
@@ -426,9 +427,10 @@ def generate_html_portal(json_db_str):
 
                 <!-- Mobile Buttons -->
                 <div class="flex sm:hidden items-center gap-1.5 pt-1 border-t border-slate-100">
-                    <button onclick="syncFromCloud(false)" class="py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-[11px] font-bold border border-emerald-200 transition flex items-center justify-center gap-1">
+                    <button onclick="onHeaderCloudSyncClick()" id="btn-cloud-sync-mobile" class="py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-[11px] font-bold border border-emerald-200 transition flex items-center justify-center gap-1">
+                        <span id="header-sync-dot-mobile" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        <span>Sync</span>
+                        <span id="header-sync-status-mobile">Sync</span>
                     </button>
                     <button onclick="openAwardCriteriaModal()" class="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-[11px] font-bold border border-blue-200 transition text-center flex items-center justify-center gap-1">
                         <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -1016,7 +1018,7 @@ def generate_html_portal(json_db_str):
                     </div>
 
                     <!-- Google Apps Script URL Endpoint -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <label class="block text-xs font-bold text-slate-700">Google Apps Script Web App Endpoint URL</label>
                             <span id="admin-endpoint-status" class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 hidden">✓ Connected</span>
@@ -1032,8 +1034,26 @@ def generate_html_portal(json_db_str):
                                 <span>🛠️ Fix Google Sheet Formatting</span>
                             </button>
                         </div>
+
+                        <!-- Multi-Device Auto-Connect Shareable Link Box -->
+                        <div id="shareable-link-box" class="hidden p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-blue-950 flex items-center gap-1">
+                                    <span>📱</span>
+                                    <span>Multi-Device Auto-Connect Shareable Link</span>
+                                </span>
+                                <button onclick="copyShareableLink()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-xs">
+                                    <span>📋 Copy Link</span>
+                                </button>
+                            </div>
+                            <input type="text" id="shareable-link-input" readonly onclick="this.select()" class="w-full bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-slate-700 select-all outline-none">
+                            <p class="text-[10px] text-blue-800 leading-snug">
+                                Send this link to Regional Heads via WhatsApp, Messenger, or Email. Any mobile phone or PC opening this link will <strong>automatically connect to your central Google Sheet</strong> with 0 setup!
+                            </p>
+                        </div>
+
                         <p class="text-[11px] text-slate-500 leading-normal">
-                            Connects directly to your central Google Sheet for live 2-way real-time data synchronization. Use <strong>Fix Google Sheet Formatting</strong> to automatically correct May Ach% & BD timestamps in your sheet with one click.
+                            Connects directly to your central Google Sheet for live 2-way real-time data synchronization across all devices. Use <strong>Fix Google Sheet Formatting</strong> to automatically correct May Ach% & BD timestamps in your sheet with one click.
                         </p>
                     </div>
 
@@ -1129,7 +1149,22 @@ def generate_html_portal(json_db_str):
         let currentActiveZoneCode = '';
         let currentMonthKey = 'May_2026';
         let savedChoices = JSON.parse(localStorage.getItem('EXIUM_AWARD_CHOICES') || '{{}}');
-        let cloudEndpoint = localStorage.getItem('EXIUM_AWARD_ENDPOINT') || '';
+
+        // Multi-Device Auto-Connect Engine:
+        // 1. Check URL query parameters: ?api=... or ?endpoint=...
+        // 2. Fallback to localStorage
+        // 3. Optional default hardcoded endpoint
+        const DEFAULT_CLOUD_ENDPOINT = '';
+        let queryEndpoint = '';
+        try {{
+            const urlParams = new URLSearchParams(window.location.search);
+            queryEndpoint = (urlParams.get('api') || urlParams.get('endpoint') || '').trim();
+            if (queryEndpoint) {{
+                localStorage.setItem('EXIUM_AWARD_ENDPOINT', queryEndpoint);
+            }}
+        }} catch (e) {{}}
+
+        let cloudEndpoint = queryEndpoint || localStorage.getItem('EXIUM_AWARD_ENDPOINT') || DEFAULT_CLOUD_ENDPOINT;
         let isAdminUnlocked = false;
         let isSubmissionsLocked = (localStorage.getItem('EXIUM_SUBMISSIONS_LOCKED') === 'true');
 
@@ -1178,14 +1213,47 @@ def generate_html_portal(json_db_str):
             }}
             initLoginDropdowns();
 
+            // Clean visible URL query string if ?api= was supplied, keeping address bar clean
+            if (queryEndpoint && window.history && window.history.replaceState) {{
+                try {{
+                    const cleanUrl = window.location.pathname;
+                    window.history.replaceState({{}}, document.title, cleanUrl);
+                }} catch (e) {{}}
+            }}
+
             if (cloudEndpoint) {{
                 const input = document.getElementById('admin-endpoint-input');
                 if (input) input.value = cloudEndpoint;
                 const statusBadge = document.getElementById('admin-endpoint-status');
                 if (statusBadge) statusBadge.classList.remove('hidden');
-                // Auto sync from cloud silently on load
+                updateShareableLinkBox();
+                // Flush any offline pending changes and pull fresh cloud data
+                flushPendingQueue();
                 syncFromCloud(true);
+            }} else {{
+                updateSyncStatusBadge('offline');
             }}
+
+            // Real-Time Background Sync: Poll cloud every 10 seconds for instant updates from other devices
+            setInterval(() => {{
+                if (cloudEndpoint && !isSyncing) {{
+                    syncFromCloud(true);
+                }}
+            }}, 10000);
+
+            // Instant Sync when device becomes active or regains internet
+            window.addEventListener('focus', () => {{
+                if (cloudEndpoint && !isSyncing) syncFromCloud(true);
+            }});
+            document.addEventListener('visibilitychange', () => {{
+                if (document.visibilityState === 'visible' && cloudEndpoint && !isSyncing) {{
+                    syncFromCloud(true);
+                }}
+            }});
+            window.addEventListener('online', () => {{
+                flushPendingQueue();
+                if (cloudEndpoint && !isSyncing) syncFromCloud(true);
+            }});
 
             updateSubmissionLockUI();
 
@@ -1675,6 +1743,190 @@ def generate_html_portal(json_db_str):
             }});
         }}
 
+        // ==============================================
+        // PERSISTENT OUTBOX QUEUE & MULTI-DEVICE SYNC
+        // ==============================================
+        function getPendingQueue() {{
+            try {{
+                return JSON.parse(localStorage.getItem('EXIUM_PENDING_QUEUE') || '{{}}');
+            }} catch (e) {{
+                return {{}};
+            }}
+        }}
+
+        function savePendingQueue(q) {{
+            try {{
+                localStorage.setItem('EXIUM_PENDING_QUEUE', JSON.stringify(q));
+            }} catch (e) {{}}
+        }}
+
+        function queueForUpload(achId, month, area_code, mio_code, voucher, timestamp, action = 'save') {{
+            const q = getPendingQueue();
+            q[achId] = {{
+                id: achId,
+                month: month,
+                area_code: area_code,
+                mio_code: mio_code,
+                voucher: voucher,
+                timestamp: timestamp,
+                action: action,
+                clientTime: Date.now()
+            }};
+            savePendingQueue(q);
+        }}
+
+        let isFlushingQueue = false;
+        async function flushPendingQueue() {{
+            if (!cloudEndpoint) return;
+            if (isFlushingQueue) return;
+
+            const q = getPendingQueue();
+            const batch = Object.values(q);
+            if (batch.length === 0) return;
+
+            isFlushingQueue = true;
+            updateSyncStatusBadge('syncing');
+
+            try {{
+                const bodyStr = JSON.stringify({{
+                    action: 'save_choices',
+                    choices: batch
+                }});
+
+                let success = false;
+                try {{
+                    const res = await fetch(cloudEndpoint, {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                        body: bodyStr
+                    }});
+                    if (res.ok) success = true;
+                }} catch (corsErr) {{
+                    try {{
+                        await fetch(cloudEndpoint, {{
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
+                            body: bodyStr
+                        }});
+                        success = true;
+                    }} catch (err) {{
+                        console.warn('Network send error:', err);
+                    }}
+                }}
+
+                if (success) {{
+                    const currentQ = getPendingQueue();
+                    batch.forEach(item => {{
+                        if (currentQ[item.id] && currentQ[item.id].clientTime === item.clientTime) {{
+                            delete currentQ[item.id];
+                        }}
+                    }});
+                    savePendingQueue(currentQ);
+                    updateSyncStatusBadge('synced');
+                }} else {{
+                    updateSyncStatusBadge('pending');
+                }}
+            }} catch (e) {{
+                console.warn('Queue flush error:', e);
+                updateSyncStatusBadge('pending');
+            }} finally {{
+                isFlushingQueue = false;
+            }}
+        }}
+
+        let debounceFlushTimer = null;
+        function triggerDebouncedFlush() {{
+            updateSyncStatusBadge('pending');
+            clearTimeout(debounceFlushTimer);
+            debounceFlushTimer = setTimeout(() => {{
+                flushPendingQueue();
+            }}, 350);
+        }}
+
+        function updateSyncStatusBadge(state, detail = '') {{
+            const elDesk = document.getElementById('header-sync-status');
+            const dotDesk = document.getElementById('header-sync-dot');
+            const iconDesk = document.getElementById('sync-icon-desktop');
+            const elMob = document.getElementById('header-sync-status-mobile');
+            const dotMob = document.getElementById('header-sync-dot-mobile');
+
+            if (!cloudEndpoint) {{
+                if (elDesk) elDesk.textContent = 'Offline (Click to Connect)';
+                if (dotDesk) dotDesk.className = 'w-2 h-2 rounded-full bg-amber-400';
+                if (elMob) elMob.textContent = 'Offline';
+                if (dotMob) dotMob.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+                return;
+            }}
+
+            if (state === 'syncing') {{
+                if (elDesk) elDesk.textContent = 'Syncing...';
+                if (dotDesk) dotDesk.className = 'w-2 h-2 rounded-full bg-blue-500 animate-ping';
+                if (iconDesk) iconDesk.classList.add('animate-spin');
+                if (elMob) elMob.textContent = 'Syncing';
+                if (dotMob) dotMob.className = 'w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping';
+            }} else if (state === 'synced') {{
+                const timeStr = detail || new Date().toLocaleTimeString([], {{ hour: '2-digit', minute: '2-digit', second: '2-digit' }});
+                if (elDesk) elDesk.textContent = `Live: ${{timeStr}}`;
+                if (dotDesk) dotDesk.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                if (iconDesk) iconDesk.classList.remove('animate-spin');
+                if (elMob) elMob.textContent = 'Live';
+                if (dotMob) dotMob.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse';
+            }} else if (state === 'pending') {{
+                const q = getPendingQueue();
+                const count = Object.keys(q).length;
+                if (elDesk) elDesk.textContent = `Pending (${{count}})`;
+                if (dotDesk) dotDesk.className = 'w-2 h-2 rounded-full bg-amber-500';
+                if (iconDesk) iconDesk.classList.remove('animate-spin');
+                if (elMob) elMob.textContent = `Queued`;
+                if (dotMob) dotMob.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+            }}
+        }}
+
+        function onHeaderCloudSyncClick() {{
+            if (!cloudEndpoint) {{
+                const input = prompt('Enter Google Apps Script Web App URL to connect this device to live Google Sheets:');
+                if (input && input.trim()) {{
+                    cloudEndpoint = input.trim();
+                    localStorage.setItem('EXIUM_AWARD_ENDPOINT', cloudEndpoint);
+                    showToast('Cloud Endpoint Connected!', '☁️');
+                    updateShareableLinkBox();
+                    flushPendingQueue();
+                    syncFromCloud(false);
+                }}
+                return;
+            }}
+            flushPendingQueue();
+            syncFromCloud(false);
+        }}
+
+        function updateShareableLinkBox() {{
+            const box = document.getElementById('shareable-link-box');
+            const input = document.getElementById('shareable-link-input');
+            if (!box || !input) return;
+            if (cloudEndpoint) {{
+                const origin = window.location.origin;
+                const path = window.location.pathname;
+                const fullUrl = `${{origin}}${{path}}?api=${{encodeURIComponent(cloudEndpoint)}}`;
+                input.value = fullUrl;
+                box.classList.remove('hidden');
+            }} else {{
+                box.classList.add('hidden');
+            }}
+        }}
+
+        function copyShareableLink() {{
+            const input = document.getElementById('shareable-link-input');
+            if (!input || !input.value) return;
+            navigator.clipboard.writeText(input.value).then(() => {{
+                showToast('Shareable Link copied! Send to Regional Heads for auto-connect.', '📋');
+            }}).catch(() => {{
+                input.select();
+                document.execCommand('copy');
+                showToast('Link copied to clipboard!', '📋');
+            }});
+        }}
+
         function selectVoucher(achId, voucherName) {{
             if (isSubmissionsLocked) {{
                 alert('🔒 Voucher choice submissions are currently CLOSED by Administrator. Portal is in Read-Only mode.');
@@ -1687,6 +1939,10 @@ def generate_html_portal(json_db_str):
                 return;
             }}
 
+            const all = DB.achievers_may.concat(DB.achievers_jun);
+            const a = all.find(x => x.id === achId);
+            if (!a) return;
+
             const bdTime = getBDTimestamp();
             savedChoices[achId] = {{
                 voucher: voucherName,
@@ -1696,9 +1952,12 @@ def generate_html_portal(json_db_str):
 
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
 
+            // Queue for cloud upload in persistent storage
+            queueForUpload(achId, a.month, a.area_code, a.mio_code, voucherName, bdTime, 'save');
+
             renderAchievers();
             updateRegionProgress();
-            triggerAutoSync(achId, voucherName, 'save', bdTime);
+            triggerDebouncedFlush();
             showToast(`Selected ${{voucherName}}`, '✅');
         }}
 
@@ -1709,6 +1968,10 @@ def generate_html_portal(json_db_str):
             }}
 
             if (!savedChoices[achId]) return;
+
+            const all = DB.achievers_may.concat(DB.achievers_jun);
+            const a = all.find(x => x.id === achId);
+            if (!a) return;
 
             const oldVoucher = savedChoices[achId].voucher;
             const existingTimestamp = (savedChoices[achId] && savedChoices[achId].timestamp) ? savedChoices[achId].timestamp : '';
@@ -1722,9 +1985,12 @@ def generate_html_portal(json_db_str):
 
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
 
+            // Queue removal in persistent storage
+            queueForUpload(achId, a.month, a.area_code, a.mio_code, '', existingTimestamp, 'remove');
+
             renderAchievers();
             updateRegionProgress();
-            triggerAutoSync(achId, '', 'remove', existingTimestamp);
+            triggerDebouncedFlush();
             showToast(`Removed ${{oldVoucher}}`, '🗑️');
         }}
 
@@ -1754,48 +2020,6 @@ def generate_html_portal(json_db_str):
             document.getElementById('sticky-completed-text').textContent = `${{completedAwards}}/${{totalAwards}} Awards (${{pct}}%) • ${{completeMios}}/${{mios.length}} MIOs Complete`;
         }}
 
-        let pendingCloudQueue = {{}};
-        let autoSyncTimer = null;
-        function triggerAutoSync(achId, voucherName, opType = 'save', explicitTimestamp = '') {{
-            const all = DB.achievers_may.concat(DB.achievers_jun);
-            const a = all.find(x => x.id === achId);
-            if (!a) return;
-
-            const isRemove = (opType === 'remove' || !voucherName);
-            const ts = explicitTimestamp || (savedChoices[achId] ? savedChoices[achId].timestamp : '') || getBDTimestamp();
-
-            pendingCloudQueue[achId] = {{
-                id: a.id,
-                month: a.month,
-                area_code: a.area_code,
-                mio_code: a.mio_code,
-                voucher: isRemove ? '' : voucherName,
-                action: isRemove ? 'remove' : 'save',
-                timestamp: ts
-            }};
-
-            clearTimeout(autoSyncTimer);
-            autoSyncTimer = setTimeout(() => {{
-                if (!cloudEndpoint) return;
-                const batch = Object.values(pendingCloudQueue);
-                if (batch.length === 0) return;
-                pendingCloudQueue = {{}};
-
-                fetch(cloudEndpoint, {{
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{
-                        action: 'save_choices',
-                        choices: batch
-                    }})
-                }}).then(() => {{
-                    const stEl = document.getElementById('sync-status-text');
-                    if (stEl) stEl.textContent = isRemove ? 'Cloud Synced (Removed)' : 'Cloud Synced';
-                }}).catch(err => console.error('Sync error:', err));
-            }}, 1200);
-        }}
-
         async function manualSaveSync() {{
             if (isSubmissionsLocked) {{
                 alert('🔒 Voucher choice submissions are currently CLOSED by Administrator. Selections cannot be modified or saved.');
@@ -1803,94 +2027,37 @@ def generate_html_portal(json_db_str):
             }}
 
             const btn = document.getElementById('btn-save-sync');
-            btn.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Saving...</span>`;
+            btn.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Saving & Syncing...</span>`;
 
             // 1. Save local choices to localStorage
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
 
-            // 2. Batch commit to Google Sheets if connected
-            if (cloudEndpoint && currentRegionName && DB.regions_map[currentRegionName]) {{
-                try {{
-                    const mios = DB.regions_map[currentRegionName].mios;
-                    const batchChoices = [];
-                    mios.forEach(m => {{
-                        if (m.may_award) {{
-                            const ch = savedChoices[m.may_award.id];
-                            if (ch) {{
-                                if (ch.voucher) {{
-                                    batchChoices.push({{
-                                        id: m.may_award.id,
-                                        month: 'May_2026',
-                                        area_code: m.may_award.area_code,
-                                        mio_code: m.may_award.mio_code,
-                                        voucher: ch.voucher,
-                                        action: 'save',
-                                        timestamp: ch.timestamp || getBDTimestamp()
-                                    }});
-                                }} else if (ch.timestamp) {{
-                                    batchChoices.push({{
-                                        id: m.may_award.id,
-                                        month: 'May_2026',
-                                        area_code: m.may_award.area_code,
-                                        mio_code: m.may_award.mio_code,
-                                        voucher: '',
-                                        action: 'remove',
-                                        timestamp: ch.timestamp
-                                    }});
-                                }}
-                            }}
-                        }}
-                        if (m.jun_award) {{
-                            const ch = savedChoices[m.jun_award.id];
-                            if (ch) {{
-                                if (ch.voucher) {{
-                                    batchChoices.push({{
-                                        id: m.jun_award.id,
-                                        month: 'June_2026',
-                                        area_code: m.jun_award.area_code,
-                                        mio_code: m.jun_award.mio_code,
-                                        voucher: ch.voucher,
-                                        action: 'save',
-                                        timestamp: ch.timestamp || getBDTimestamp()
-                                    }});
-                                }} else if (ch.timestamp) {{
-                                    batchChoices.push({{
-                                        id: m.jun_award.id,
-                                        month: 'June_2026',
-                                        area_code: m.jun_award.area_code,
-                                        mio_code: m.jun_award.mio_code,
-                                        voucher: '',
-                                        action: 'remove',
-                                        timestamp: ch.timestamp
-                                    }});
-                                }}
-                            }}
-                        }}
-                    }});
-
-                    if (batchChoices.length > 0) {{
-                        fetch(cloudEndpoint, {{
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: {{ 'Content-Type': 'application/json' }},
-                            body: JSON.stringify({{
-                                action: 'save_choices',
-                                choices: batchChoices
-                            }})
-                        }});
+            // 2. Queue all choices in active region to guarantee they are queued
+            if (currentRegionName && DB.regions_map[currentRegionName]) {{
+                const mios = DB.regions_map[currentRegionName].mios;
+                mios.forEach(m => {{
+                    if (m.may_award && savedChoices[m.may_award.id]) {{
+                        const ch = savedChoices[m.may_award.id];
+                        queueForUpload(m.may_award.id, 'May_2026', m.may_award.area_code, m.may_award.mio_code, ch.voucher || '', ch.timestamp || getBDTimestamp(), ch.voucher ? 'save' : 'remove');
                     }}
-                }} catch (err) {{
-                    console.error('Batch save error:', err);
-                }}
+                    if (m.jun_award && savedChoices[m.jun_award.id]) {{
+                        const ch = savedChoices[m.jun_award.id];
+                        queueForUpload(m.jun_award.id, 'June_2026', m.jun_award.area_code, m.jun_award.mio_code, ch.voucher || '', ch.timestamp || getBDTimestamp(), ch.voucher ? 'save' : 'remove');
+                    }}
+                }});
             }}
 
+            // 3. Flush outbox to cloud
+            await flushPendingQueue();
+
+            // 4. Pull fresh data from cloud
+            await syncFromCloud(true);
+
+            btn.innerHTML = `<span>✓ Saved & Synced</span>`;
+            showToast('All selections saved and synced with Google Sheets!', '💾');
             setTimeout(() => {{
-                btn.innerHTML = `<span>✓ Saved</span>`;
-                showToast('All selections saved successfully!', '💾');
-                setTimeout(() => {{
-                    btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg><span>Save</span>`;
-                }}, 2000);
-            }}, 400);
+                btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg><span>Save</span>`;
+            }}, 2000);
         }}
 
         function onZonalZoneChange() {{
@@ -2439,6 +2606,7 @@ def generate_html_portal(json_db_str):
 
             savedChoices = {{}};
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
+            savePendingQueue({{}});
 
             if (currentRegionName) {{
                 renderAchievers();
@@ -2457,7 +2625,7 @@ def generate_html_portal(json_db_str):
                     await fetch(url, {{
                         method: 'POST',
                         mode: 'no-cors',
-                        headers: {{ 'Content-Type': 'application/json' }},
+                        headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
                         body: JSON.stringify({{
                             action: 'delete_all_data'
                         }})
@@ -2492,13 +2660,18 @@ def generate_html_portal(json_db_str):
             const confirm1 = confirm(`Are you sure you want to delete and reset all voucher choices for Region: "${{targetRegion}}" (${{totalInReg}} awards)?\\n\\nThis will reset them back to Pending.`);
             if (!confirm1) return;
 
-            // Clear choices for this region
+            // Clear choices for this region from local choices and pending queue
+            const curQ = getPendingQueue();
             [...regMay, ...regJun].forEach(a => {{
                 if (savedChoices[a.id]) {{
                     delete savedChoices[a.id];
                 }}
+                if (curQ[a.id]) {{
+                    delete curQ[a.id];
+                }}
             }});
             localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
+            savePendingQueue(curQ);
 
             if (currentRegionName === targetRegion) {{
                 renderAchievers();
@@ -2517,7 +2690,7 @@ def generate_html_portal(json_db_str):
                     await fetch(url, {{
                         method: 'POST',
                         mode: 'no-cors',
-                        headers: {{ 'Content-Type': 'application/json' }},
+                        headers: {{ 'Content-Type': 'text/plain;charset=utf-8' }},
                         body: JSON.stringify({{
                             action: 'delete_region_data',
                             region_name: targetRegion
@@ -2537,15 +2710,18 @@ def generate_html_portal(json_db_str):
         async function syncFromCloud(silent = false) {{
             if (!cloudEndpoint) {{
                 if (!silent) showToast('Please set Google Apps Script URL in Admin Panel first!', '⚠️');
+                updateSyncStatusBadge('offline');
                 return;
             }}
             if (isSyncing) return;
             isSyncing = true;
-
-            const syncIcon = document.getElementById('sync-icon-desktop');
-            if (syncIcon) syncIcon.classList.add('animate-spin');
+            updateSyncStatusBadge('syncing');
 
             try {{
+                // 1. Flush any pending uncommitted choices first
+                await flushPendingQueue();
+
+                // 2. Fetch latest snapshot from Google Sheets
                 const url = cloudEndpoint + (cloudEndpoint.includes('?') ? '&' : '?') + 'action=fetch_data&t=' + Date.now();
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -2563,94 +2739,83 @@ def generate_html_portal(json_db_str):
 
                     const mayData = json.data.May_2026 || {{}};
                     const junData = json.data.June_2026 || {{}};
+                    const pendingQ = getPendingQueue();
                     let appliedCount = 0;
 
-                    DB.achievers_may.forEach(a => {{
-                        const key = a.area_code + '_' + a.mio_code;
-                        if (mayData[key]) {{
-                            const item = mayData[key];
-                            const prev = savedChoices[a.id];
-                            const prevVoucher = prev ? (prev.voucher || '') : '';
-                            const prevTime = prev ? (prev.timestamp || '') : '';
-                            if (item.voucher) {{
-                                if (prevVoucher !== item.voucher || prevTime !== item.timestamp) {{
-                                    savedChoices[a.id] = {{
-                                        voucher: item.voucher,
-                                        timestamp: item.timestamp || '',
-                                        status: 'Complete'
-                                    }};
-                                    appliedCount++;
-                                }}
-                            }} else if (item.timestamp) {{
-                                if (prevVoucher !== '' || prevTime !== item.timestamp) {{
-                                    savedChoices[a.id] = {{
-                                        voucher: '',
-                                        timestamp: item.timestamp,
-                                        status: 'Pending'
-                                    }};
-                                    appliedCount++;
-                                }}
-                            }} else {{
-                                if (prevVoucher !== '' || prevTime !== '') {{
-                                    delete savedChoices[a.id];
-                                    appliedCount++;
-                                }}
-                            }}
-                        }}
-                    }});
+                    // Anti-Blanking Merge Logic
+                    const mergeCloudAchievers = (achieverList, cloudDict, monthKey) => {{
+                        achieverList.forEach(a => {{
+                            const key = a.area_code + '_' + a.mio_code;
+                            const cloudItem = cloudDict[key];
+                            const localItem = savedChoices[a.id];
+                            const isLocalPending = !!pendingQ[a.id];
 
-                    DB.achievers_jun.forEach(a => {{
-                        const key = a.area_code + '_' + a.mio_code;
-                        if (junData[key]) {{
-                            const item = junData[key];
-                            const prev = savedChoices[a.id];
-                            const prevVoucher = prev ? (prev.voucher || '') : '';
-                            const prevTime = prev ? (prev.timestamp || '') : '';
-                            if (item.voucher) {{
-                                if (prevVoucher !== item.voucher || prevTime !== item.timestamp) {{
+                            // If this device just clicked and is waiting to upload, do NOT overwrite it
+                            if (isLocalPending) {{
+                                return;
+                            }}
+
+                            if (cloudItem && cloudItem.voucher) {{
+                                // Cloud has confirmed voucher
+                                const prevVoucher = localItem ? (localItem.voucher || '') : '';
+                                const prevTime = localItem ? (localItem.timestamp || '') : '';
+                                if (prevVoucher !== cloudItem.voucher || prevTime !== cloudItem.timestamp) {{
                                     savedChoices[a.id] = {{
-                                        voucher: item.voucher,
-                                        timestamp: item.timestamp || '',
+                                        voucher: cloudItem.voucher,
+                                        timestamp: cloudItem.timestamp || '',
                                         status: 'Complete'
                                     }};
                                     appliedCount++;
                                 }}
-                            }} else if (item.timestamp) {{
-                                if (prevVoucher !== '' || prevTime !== item.timestamp) {{
+                            }} else if (cloudItem && cloudItem.status === 'Pending' && !cloudItem.voucher) {{
+                                // Cloud explicitly has Pending / Deselected
+                                if (localItem && localItem.voucher) {{
                                     savedChoices[a.id] = {{
                                         voucher: '',
-                                        timestamp: item.timestamp,
+                                        timestamp: cloudItem.timestamp || localItem.timestamp || '',
                                         status: 'Pending'
                                     }};
                                     appliedCount++;
                                 }}
-                            }} else {{
-                                if (prevVoucher !== '' || prevTime !== '') {{
-                                    delete savedChoices[a.id];
-                                    appliedCount++;
+                            }} else if (!cloudItem) {{
+                                // Cloud does not have any record for this achiever yet
+                                // ANTI-BLANKING RULE: NEVER ERASE LOCAL CHOICE!
+                                // If this device has a valid choice, preserve it and queue for upload!
+                                if (localItem && localItem.voucher) {{
+                                    queueForUpload(a.id, monthKey, a.area_code, a.mio_code, localItem.voucher, localItem.timestamp || getBDTimestamp(), 'save');
                                 }}
                             }}
-                        }}
-                    }});
+                        }});
+                    }};
+
+                    mergeCloudAchievers(DB.achievers_may, mayData, 'May_2026');
+                    mergeCloudAchievers(DB.achievers_jun, junData, 'June_2026');
 
                     localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
 
-                    if (currentRegionName) {{
-                        renderAchievers();
-                        updateRegionProgress();
-                    }}
-                    if (currentActiveZoneCode) {{
-                        renderZonalDashboardData(currentActiveZoneCode);
-                    }}
-                    if (isAdminUnlocked) {{
-                        refreshAdminStats();
+                    if (appliedCount > 0 || !silent) {{
+                        if (currentRegionName) {{
+                            renderAchievers();
+                            updateRegionProgress();
+                        }}
+                        if (currentActiveZoneCode) {{
+                            renderZonalDashboardData(currentActiveZoneCode);
+                        }}
+                        if (isAdminUnlocked) {{
+                            refreshAdminStats();
+                        }}
                     }}
 
-                    const timeStr = new Date().toLocaleTimeString([], {{ hour: '2-digit', minute: '2-digit' }});
-                    const statusText = document.getElementById('header-sync-status');
-                    if (statusText) statusText.textContent = `Synced: ${{timeStr}}`;
                     const badgeStatus = document.getElementById('admin-endpoint-status');
                     if (badgeStatus) badgeStatus.classList.remove('hidden');
+                    updateShareableLinkBox();
+                    updateSyncStatusBadge('synced');
+
+                    // If we queued any missing local choices, flush them immediately
+                    const finalQ = getPendingQueue();
+                    if (Object.keys(finalQ).length > 0) {{
+                        flushPendingQueue();
+                    }}
 
                     if (!silent) {{
                         showToast(`Cloud Synced! (${{appliedCount}} updated)`, '☁️');
@@ -2658,10 +2823,10 @@ def generate_html_portal(json_db_str):
                 }}
             }} catch (err) {{
                 console.warn('Cloud sync error:', err);
-                if (!silent) showToast('Cloud sync failed. Check URL.', '⚠️');
+                updateSyncStatusBadge('pending');
+                if (!silent) showToast('Cloud sync failed. Check URL or internet.', '⚠️');
             }} finally {{
                 isSyncing = false;
-                if (syncIcon) syncIcon.classList.remove('animate-spin');
             }}
         }}
 
@@ -2672,10 +2837,14 @@ def generate_html_portal(json_db_str):
             const badgeStatus = document.getElementById('admin-endpoint-status');
             if (val) {{
                 if (badgeStatus) badgeStatus.classList.remove('hidden');
+                updateShareableLinkBox();
                 showToast('Endpoint URL saved! Testing live sync...', '⚙️');
+                flushPendingQueue();
                 syncFromCloud(false);
             }} else {{
                 if (badgeStatus) badgeStatus.classList.add('hidden');
+                updateShareableLinkBox();
+                updateSyncStatusBadge('offline');
                 showToast('Endpoint URL cleared.', 'ℹ️');
             }}
         }}
