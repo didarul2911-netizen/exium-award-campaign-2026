@@ -1040,14 +1040,14 @@ def generate_html_portal(json_db_str):
                             <div class="space-y-0.5">
                                 <span class="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
                                     <span>🌐</span>
-                                    <span>Universal Multi-Device Link (Auto-Connected)</span>
+                                    <span>Shareable Masked Portal Link (Auto-Connected)</span>
                                 </span>
                                 <p class="text-[11px] text-emerald-800">
-                                    Share this standard link with all Regional Heads: <strong class="font-mono text-emerald-950">https://didarul2911-netizen.github.io/exium-award-campaign-2026/</strong>
+                                    Share this clean link with all Regional Heads: <strong class="font-mono text-emerald-950">https://tinyurl.com/exium-award-choice-2026</strong>
                                 </p>
                             </div>
                             <button onclick="copyShareableLink()" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0 shadow-xs">
-                                <span>📋 Copy Link</span>
+                                <span>📋 Copy Masked Link</span>
                             </button>
                         </div>
 
@@ -1960,9 +1960,9 @@ def generate_html_portal(json_db_str):
         }}
 
         function copyShareableLink() {{
-            const cleanUrl = 'https://didarul2911-netizen.github.io/exium-award-campaign-2026/';
+            const cleanUrl = 'https://tinyurl.com/exium-award-choice-2026';
             navigator.clipboard.writeText(cleanUrl).then(() => {{
-                showToast('Standard Portal Link copied! Send directly to Regional Heads.', '📋');
+                showToast('Masked Portal Link copied! Send directly to Regional Heads.', '📋');
             }}).catch(() => {{
                 showToast(cleanUrl, '📋');
             }});
