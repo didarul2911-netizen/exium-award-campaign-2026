@@ -689,21 +689,20 @@
                             </button>
                         </div>
 
-                        <!-- Multi-Device Auto-Connect Shareable Link Box -->
-                        <div id="shareable-link-box" class="hidden p-3 bg-blue-50/80 border border-blue-200 rounded-xl space-y-1.5">
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-xs font-bold text-blue-950 flex items-center gap-1">
-                                    <span>📱</span>
-                                    <span>Multi-Device Auto-Connect Shareable Link</span>
+                        <!-- Universal Multi-Device Cloud Sync Link Banner -->
+                        <div class="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-2">
+                            <div class="space-y-0.5">
+                                <span class="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                                    <span>🌐</span>
+                                    <span>Universal Multi-Device Link (Auto-Connected)</span>
                                 </span>
-                                <button onclick="copyShareableLink()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-xs">
-                                    <span>📋 Copy Link</span>
-                                </button>
+                                <p class="text-[11px] text-emerald-800">
+                                    Share this standard link with all Regional Heads: <strong class="font-mono text-emerald-950">https://didarul2911-netizen.github.io/exium-award-campaign-2026/</strong>
+                                </p>
                             </div>
-                            <input type="text" id="shareable-link-input" readonly onclick="this.select()" class="w-full bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-slate-700 select-all outline-none">
-                            <p class="text-[10px] text-blue-800 leading-snug">
-                                Send this link to Regional Heads via WhatsApp, Messenger, or Email. Any mobile phone or PC opening this link will <strong>automatically connect to your central Google Sheet</strong> with 0 setup!
-                            </p>
+                            <button onclick="copyShareableLink()" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0 shadow-xs">
+                                <span>📋 Copy Link</span>
+                            </button>
                         </div>
 
                         <p class="text-[11px] text-slate-500 leading-normal">
@@ -805,10 +804,10 @@
         let savedChoices = JSON.parse(localStorage.getItem('EXIUM_AWARD_CHOICES') || '{}');
 
         // Multi-Device Auto-Connect Engine:
-        // 1. Check URL query parameters: ?api=... or ?endpoint=...
-        // 2. Fallback to localStorage
-        // 3. Optional default hardcoded endpoint
-        const DEFAULT_CLOUD_ENDPOINT = '';
+        // 1. Production Central Google Apps Script Web App Endpoint
+        // 2. Optional override via URL query parameters: ?api=... or ?endpoint=...
+        // 3. Fallback to localStorage
+        const DEFAULT_CLOUD_ENDPOINT = 'https://script.google.com/macros/s/AKfycbypTb7igli6MB6JzH5U9htVWSKe8Vgd-njUahmuJXtT1b83CUaDLHzyFpnMHsAm58JRHA/exec';
         let queryEndpoint = '';
         try {
             const urlParams = new URLSearchParams(window.location.search);
@@ -819,6 +818,10 @@
         } catch (e) {}
 
         let cloudEndpoint = queryEndpoint || localStorage.getItem('EXIUM_AWARD_ENDPOINT') || DEFAULT_CLOUD_ENDPOINT;
+        if (!cloudEndpoint || !cloudEndpoint.startsWith('http')) {
+            cloudEndpoint = DEFAULT_CLOUD_ENDPOINT;
+            localStorage.setItem('EXIUM_AWARD_ENDPOINT', DEFAULT_CLOUD_ENDPOINT);
+        }
         let isAdminUnlocked = false;
         let isSubmissionsLocked = (localStorage.getItem('EXIUM_SUBMISSIONS_LOCKED') === 'true');
 
@@ -1555,29 +1558,15 @@
         }
 
         function updateShareableLinkBox() {
-            const box = document.getElementById('shareable-link-box');
-            const input = document.getElementById('shareable-link-input');
-            if (!box || !input) return;
-            if (cloudEndpoint) {
-                const origin = window.location.origin;
-                const path = window.location.pathname;
-                const fullUrl = `${origin}${path}?api=${encodeURIComponent(cloudEndpoint)}`;
-                input.value = fullUrl;
-                box.classList.remove('hidden');
-            } else {
-                box.classList.add('hidden');
-            }
+            // No-op: Central Google Apps Script URL is embedded directly as DEFAULT_CLOUD_ENDPOINT
         }
 
         function copyShareableLink() {
-            const input = document.getElementById('shareable-link-input');
-            if (!input || !input.value) return;
-            navigator.clipboard.writeText(input.value).then(() => {
-                showToast('Shareable Link copied! Send to Regional Heads for auto-connect.', '📋');
+            const cleanUrl = 'https://didarul2911-netizen.github.io/exium-award-campaign-2026/';
+            navigator.clipboard.writeText(cleanUrl).then(() => {
+                showToast('Standard Portal Link copied! Send directly to Regional Heads.', '📋');
             }).catch(() => {
-                input.select();
-                document.execCommand('copy');
-                showToast('Link copied to clipboard!', '📋');
+                showToast(cleanUrl, '📋');
             });
         }
 
