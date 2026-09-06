@@ -2,6 +2,8 @@
 
 Standalone, production-grade Award Choice Web Portal for Sr. / MIO Award Achievers across Bangladesh to select their preferred gift voucher from 6 authorized retail brands.
 
+🌐 **Live Portal Link:** **[https://didarul2911-netizen.github.io/exium-award-campaign-2026/](https://didarul2911-netizen.github.io/exium-award-campaign-2026/)**
+
 ---
 
 ## 📂 Project Structure
