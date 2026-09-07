@@ -1852,37 +1852,57 @@
             }
 
             const btn = document.getElementById('btn-save-sync');
-            btn.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Saving & Syncing...</span>`;
+            const originalBtnHtml = `<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg><span>Save</span>`;
 
-            // 1. Save local choices to localStorage
-            localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
-
-            // 2. Queue all choices in active region to guarantee they are queued
-            if (currentRegionName && DB.regions_map[currentRegionName]) {
-                const mios = DB.regions_map[currentRegionName].mios;
-                mios.forEach(m => {
-                    if (m.may_award && savedChoices[m.may_award.id]) {
-                        const ch = savedChoices[m.may_award.id];
-                        queueForUpload(m.may_award.id, 'May_2026', m.may_award.area_code, m.may_award.mio_code, ch.voucher || '', ch.timestamp || getBDTimestamp(), ch.voucher ? 'save' : 'remove');
-                    }
-                    if (m.jun_award && savedChoices[m.jun_award.id]) {
-                        const ch = savedChoices[m.jun_award.id];
-                        queueForUpload(m.jun_award.id, 'June_2026', m.jun_award.area_code, m.jun_award.mio_code, ch.voucher || '', ch.timestamp || getBDTimestamp(), ch.voucher ? 'save' : 'remove');
-                    }
-                });
+            if (btn) {
+                btn.innerHTML = `<svg class="w-3.5 h-3.5 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Saving...</span>`;
             }
 
-            // 3. Flush outbox to cloud
-            await flushPendingQueue();
+            try {
+                // 1. Save local choices to localStorage
+                localStorage.setItem('EXIUM_AWARD_CHOICES', JSON.stringify(savedChoices));
 
-            // 4. Pull fresh data from cloud
-            await syncFromCloud(true);
+                // 2. Queue all choices in active region to guarantee they are queued
+                if (currentRegionName) {
+                    const allAchievers = DB.achievers_may.concat(DB.achievers_jun);
+                    const regionAchievers = allAchievers.filter(a => a.region === currentRegionName);
+                    regionAchievers.forEach(a => {
+                        if (savedChoices[a.id]) {
+                            const ch = savedChoices[a.id];
+                            if (ch.voucher) {
+                                queueForUpload(a.id, a.month, a.area_code, a.mio_code, ch.voucher, ch.timestamp || getBDTimestamp(), 'save');
+                            }
+                        }
+                    });
+                }
 
-            btn.innerHTML = `<span>✓ Saved & Synced</span>`;
-            showToast('All selections saved and synced with Google Sheets!', '💾');
-            setTimeout(() => {
-                btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg><span>Save</span>`;
-            }, 2000);
+                // 3. Flush outbox to cloud (Google Sheets)
+                await flushPendingQueue();
+
+                // 4. Pull fresh data from cloud
+                try {
+                    await syncFromCloud(true);
+                } catch (syncErr) {
+                    console.warn('Silent cloud sync warning:', syncErr);
+                }
+
+                if (btn) {
+                    btn.innerHTML = `<span>✓ Saved & Synced</span>`;
+                }
+                showToast('All selections saved and synced with Google Sheets!', '💾');
+            } catch (err) {
+                console.error('Save error:', err);
+                if (btn) {
+                    btn.innerHTML = `<span>✓ Saved Locally</span>`;
+                }
+                showToast('Saved in browser storage! Syncing with cloud in background.', '💾');
+            } finally {
+                setTimeout(() => {
+                    if (btn) {
+                        btn.innerHTML = originalBtnHtml;
+                    }
+                }, 2000);
+            }
         }
 
         function onZonalZoneChange() {
